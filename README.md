@@ -62,7 +62,9 @@ Python など任意の静的 HTTP サーバーでも動作します。ES modules
 
 `index.html`、`style.css`、`src/`、`assets/`、`.nojekyll` が配信に必要なファイルです。相対 URL だけを使い、プロジェクトの `/demo5/` 配下でも動作します。ビルド工程、バックエンド、環境変数、外部 API は不要です。
 
-リポジトリの Pages 設定・可視性は変更していません。自動公開 workflow も追加していません。初回体験の方向を確認したあと、必要であれば GitHub の Pages 設定で承認したブランチのルートを配信対象にできます。現在の成果はローカルのみです。
+Pages の公開設定はまだ変更していません。GitHub の **Settings → Pages → Build and deployment** で **Deploy from a branch** を選び、branch `main`、folder `/(root)` を指定して保存してください。`index.html`、`.nojekyll`、`assets/`、`src/` が root にある構成です。自動公開 workflow は不要です。
+
+GitHub Pages のサイトはインターネット上で公開されます。設定と公開については [GitHub Docs](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site) を参照してください。
 
 ## 検証
 
