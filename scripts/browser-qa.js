@@ -2,7 +2,7 @@ async(page)=>{
  let checks=0;const errors=[];page.on('pageerror',e=>errors.push(e.message));
  const assert=(v,msg)=>{if(!v)throw new Error(msg);checks++;};
  await page.goto('about:blank');const cdp=await page.context().newCDPSession(page);await cdp.send('Storage.clearDataForOrigin',{origin:'http://127.0.0.1:4187',storageTypes:'local_storage'});await cdp.detach();
- await page.setViewportSize({width:390,height:664});await page.goto('http://127.0.0.1:4187/demo5/');await page.emulateMedia({reducedMotion:'reduce'});
+ await page.setViewportSize({width:390,height:664});await page.goto('http://127.0.0.1:4187/musical-stones/');await page.emulateMedia({reducedMotion:'reduce'});
  const saved=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('demo5.sound-stitch.v1')));
  const puzzle=async()=>{const s=await saved();return s.puzzles[['sprout','walk','lantern'][s.levelIndex]];};
  const nav=i=>page.locator('#levels button').nth(i).click();

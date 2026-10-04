@@ -1,6 +1,6 @@
 async(page)=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
- await page.goto('http://127.0.0.1:4187/demo5/review/first-song.html');
+ await page.goto('http://127.0.0.1:4187/musical-stones/review/first-song.html');
  await page.waitForFunction(()=>Number.isFinite(document.querySelector('audio').duration));
  const before=await page.locator('audio').evaluate(a=>({duration:a.duration,paused:a.paused}));
  await page.locator('#sample-play').click();await page.waitForFunction(()=>document.querySelector('audio').currentTime>.08&&!document.querySelector('audio').paused);

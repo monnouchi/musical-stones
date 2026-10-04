@@ -5,25 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#ded6c2">
   <meta name="description" content="遺跡で見つけた音の宝石を聴いて、つなぎ、眠っていた小さな曲をよみがえらせる音楽パズル。">
-  <title>おとのつづき — 音楽パズル試作</title>
+  <meta property="og:title" content="Musical Stones">
+  <meta property="og:url" content="https://monnouchi.github.io/musical-stones/">
+  <link rel="canonical" href="https://monnouchi.github.io/musical-stones/">
+  <title>Musical Stones</title>
   <link rel="icon" href="./assets/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./style.css?v=0.4.1">
-  <script type="module" src="./src/app.js?v=0.4.1"></script>
+  <link rel="stylesheet" href="./style.css?v=0.4.2">
+  <script type="module" src="./src/app.js?v=0.4.2"></script>
 </head>
 <body>
   <svg class="ambient-staff" viewBox="0 0 1000 300" preserveAspectRatio="none" aria-hidden="true"><g><path d="M-40 100 Q210 55 480 110 T1040 90"/><path d="M-40 120 Q210 75 480 130 T1040 110"/><path d="M-40 140 Q210 95 480 150 T1040 130"/><path d="M-40 160 Q210 115 480 170 T1040 150"/><path d="M-40 180 Q210 135 480 190 T1040 170"/></g></svg>
   <div class="shell">
     <header class="site-header">
-      <a href="./" class="wordmark" aria-label="おとのつづき ホーム"><span class="brand-symbol" aria-hidden="true">◇</span> おとのつづき</a>
+      <a href="./" class="wordmark" aria-label="Musical Stones ホーム"><span class="brand-symbol" aria-hidden="true">◇</span> Musical Stones</a>
       <div class="sound-settings"><button id="mute" type="button" class="quiet-button" aria-pressed="false">音あり</button><label class="sr-only" for="volume">音量</label><input id="volume" type="range" min="0" max="100" value="65" aria-label="音量"></div>
     </header>
     <main>
-      <section class="intro" aria-labelledby="title"><p class="eyebrow">RELICS OF A LITTLE SONG</p><h1 id="title">眠っていた音を、つなぐ。</h1><p>遺跡で見つけた、音を宿す宝石。<br>そのつながりを探すと、小さな曲がよみがえる。</p></section>
+      <section class="intro" aria-labelledby="title"><h1 id="title">Musical Stones</h1><p>音の宝石をつなぎ、小さな曲をよみがえらせる。</p></section>
       <nav id="levels" class="level-nav" aria-label="曲を選ぶ"></nav>
       <section class="puzzle" aria-labelledby="level-title">
         <div class="puzzle-heading"><div><p id="level-kicker" class="eyebrow"></p><h2 id="level-title"></h2></div><button id="reference" class="quiet-button" type="button">▷ お手本</button></div>
         <div id="gem-stage" class="gem-stage" aria-label="宝石と音の台座">
           <span class="stone-label socket-label" aria-hidden="true">音の台座</span>
+          <div class="stone-staff" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
           <div id="sockets" class="sockets" aria-hidden="true"></div>
           <svg id="connections" class="connections" preserveAspectRatio="none" aria-hidden="true"></svg>
           <span class="stone-label shelf-label" aria-hidden="true">自由に動かせます</span>

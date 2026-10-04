@@ -1,6 +1,6 @@
 {
-  "name": "demo5-sound-stitch",
-  "version": "0.4.1",
+  "name": "musical-stones",
+  "version": "0.4.2",
   "private": true,
   "type": "module",
   "scripts": {

@@ -1,6 +1,6 @@
 async(page)=>{
  let checks=0;const errors=[];page.on('pageerror',e=>errors.push(e.message));const assert=(v,msg)=>{if(!v)throw Error(msg);checks++;};
- const url='http://127.0.0.1:4187/demo5/';
+ const url='http://127.0.0.1:4187/musical-stones/';
  const solutions=[['s-kite','s-pebble'],['w-sand','w-cloud','w-reed'],['l-moss','l-rain','l-fern','l-shell']];const levelIds=['sprout','walk','lantern'];
  const saved=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('demo5.sound-stitch.v1')));
  const nav=i=>page.locator('#levels button').nth(i).click();
@@ -43,7 +43,7 @@ async(page)=>{
  // Pagehide of the old app cannot overwrite the injected migration fixture.
  for(const version of [1,2,3,4]){
   await page.goto('about:blank');
-  await page.goto('http://127.0.0.1:4187/demo5/review/first-song.html');
+  await page.goto('http://127.0.0.1:4187/musical-stones/review/first-song.html');
   await page.evaluate(({version,solutions,levelIds})=>{
    localStorage.setItem('demo5.sound-stitch.v1',JSON.stringify({version,levelIndex:2,volume:.28,muted:true,solved:levelIds,puzzles:Object.fromEntries(levelIds.map((id,i)=>[id,{tray:solutions[i],slots:solutions[i],world:Object.fromEntries(solutions[i].map(f=>[f,{x:.01,y:.01}]))}]))}));
   },{version,solutions,levelIds});

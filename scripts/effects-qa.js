@@ -1,6 +1,6 @@
 async(page)=>{
  let checks=0;const errors=[];page.on('pageerror',e=>errors.push(e.message));const assert=(v,msg)=>{if(!v)throw new Error(msg);checks++;};
- await page.goto('http://127.0.0.1:4187/demo5/');await page.setViewportSize({width:390,height:664});await page.emulateMedia({reducedMotion:'no-preference'});await page.locator('#levels button').nth(2).click();
+ await page.goto('http://127.0.0.1:4187/musical-stones/');await page.setViewportSize({width:390,height:664});await page.emulateMedia({reducedMotion:'no-preference'});await page.locator('#levels button').nth(2).click();
  const ids=['l-moss','l-rain','l-fern','l-shell'];
  const put=async(id,index)=>{await page.locator(`[data-gem="${id}"]`).focus();await page.keyboard.press(String(index+1));};
  const board=()=>page.evaluate(()=>{const b=document.getElementById('gem-stage'),r=b.getBoundingClientRect();return{x:r.left+b.clientLeft,y:r.top+b.clientTop,w:b.clientWidth,h:b.clientHeight};});

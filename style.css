@@ -170,9 +170,14 @@ h2 {
   border-radius:.8rem;
   isolation:isolate;
   overflow:visible;
-  background:radial-gradient(circle at 1rem 1rem,#5f635512 .7px,transparent 1px) 0 0/2.2rem 1.6rem,linear-gradient(145deg,#c9c5b4,#b9b39e);
+  background:radial-gradient(ellipse at 14% 23%,#74776125,transparent 32%),radial-gradient(ellipse at 78% 70%,#f6e8bb30,transparent 39%),repeating-linear-gradient(113deg,transparent 0 17px,#676b5710 18px,transparent 19px 43px),radial-gradient(circle,#666b5930 .6px,transparent .9px) 0 0/7px 11px,linear-gradient(145deg,#c9c5b4,#b9b39e);
   border:1px solid #aaab93;
   box-shadow:inset 1px 2px 5px #fff6,inset -1px -2px 7px #5e625c30,0 3px 7px #414d3612;
+}
+.gem-stage:before {
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(167deg,transparent 18%,#5b64541c 18.3%,transparent 18.8%) 6% 15%/76px 29px no-repeat,linear-gradient(24deg,transparent 48%,#656c5528 49%,#f4ecd170 51%,transparent 52%) 90% 88%/61px 20px no-repeat;
+  box-shadow:inset 0 0 13px #5c655222,inset 3px 0 2px #777d5d20;
 }
 .stone-label {
   position:absolute;
@@ -185,6 +190,25 @@ h2 {
 .socket-label {
   top:.4rem;
 }
+.stone-staff {
+  position:absolute;
+  left:.65rem;
+  right:.65rem;
+  top:calc(29% - 28px);
+  height:41px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  pointer-events:none;
+}
+.stone-staff>span {
+  height:1px;
+  background:linear-gradient(90deg,#59635425,#59635465 17%,#59635425 31%,#59635458 47%,#59635418 61%,#59635460 81%,#59635430);
+  box-shadow:0 1px 0 #f4ecd17a;
+  mask-image:linear-gradient(90deg,#000 0 22%,#0005 23% 25%,#000 26% 62%,#0007 63% 65%,#000 66%);
+}
+.stone-staff>span:nth-child(even) {mask-position:31px 0;opacity:.82}
+.stone-staff>span:nth-child(3) {opacity:.72}
 .shelf-label {
   top:145px;
 }
@@ -856,3 +880,17 @@ footer {
 .gem.has-magic .gem-face {filter:brightness(1.25) drop-shadow(0 0 6px #fff4b3);transition:none}
 
 .gem.has-magic .gem-facet {opacity:.62}
+
+/* Raw stones recover their colour only after the whole song is judged. */
+.gem-stage:not(.is-awakened) .gem-face {filter:saturate(.18) brightness(.83) drop-shadow(0 3px 3px #2b393340)}
+.gem-stage:not(.is-awakened) .gem-facet {opacity:.12}
+.gem-stage:not(.is-awakened) .gem.has-magic .gem-face,.gem-stage:not(.is-awakened) .gem.is-playing .gem-face {filter:saturate(.18) brightness(1.02) drop-shadow(0 0 4px #e9dfb4)}
+.gem-stage.is-awakened .gem-face {filter:saturate(1.2) brightness(1.12) drop-shadow(0 0 7px var(--gem-color))}
+@media(prefers-reduced-motion:reduce) {.gem-stage.is-awakened .gem-face {animation:none;transition:none}}
+.gem-stage.is-awakened .gem-face,.room-gem .gem-face {animation:stone-orbit 9s linear infinite,stone-shimmer 5s ease-in-out infinite;transform-origin:50% 50%}
+.gem-stage.is-awakened .gem-facet,.room-gem .gem-facet {animation:facet-shimmer 4s ease-in-out infinite}
+@keyframes stone-orbit {from {transform:perspective(300px) rotateY(0deg)} to {transform:perspective(300px) rotateY(360deg)}}
+@keyframes stone-shimmer {0%,100% {filter:saturate(1.2) brightness(1.12) drop-shadow(0 0 7px var(--gem-color))} 50% {filter:saturate(1.3) brightness(1.35) drop-shadow(0 0 10px var(--gem-color))}}
+@keyframes facet-shimmer {0%,100% {opacity:.3} 50% {opacity:.6}}
+body.is-background .gem-face,body.is-background .gem-facet {animation-play-state:paused!important}
+@media(prefers-reduced-motion:reduce) {.gem-stage.is-awakened .gem-face,.room-gem .gem-face,.gem-stage.is-awakened .gem-facet,.room-gem .gem-facet {animation:none;transition:none}}

@@ -10,8 +10,8 @@ const server = http.createServer(async (req, res) => {
   try {
     let pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
     // Mirror the GitHub Pages project prefix as well as the local root.
-    if (pathname === '/demo5') { res.writeHead(302, { Location: '/demo5/' }); res.end(); return; }
-    if (pathname.startsWith('/demo5/')) pathname = pathname.slice(6);
+    if (pathname === '/musical-stones') { res.writeHead(302, { Location: '/musical-stones/' }); res.end(); return; }
+    if (pathname.startsWith('/musical-stones/')) pathname = pathname.slice('/musical-stones'.length);
     if (pathname.endsWith('/')) pathname += 'index.html';
     const segments = pathname.split('/');
     if (segments.some(s => s.startsWith('.') || s === 'node_modules' || s === 'output' || s === 'tests' || s === 'docs')) { res.writeHead(403); res.end(); return; }
@@ -34,7 +34,7 @@ const server = http.createServer(async (req, res) => {
     res.end(req.method === 'HEAD' ? undefined : content);
   } catch { res.writeHead(404); res.end('Not found'); }
 });
-server.listen(port, '127.0.0.1', () => console.log(`おとのつづき: http://127.0.0.1:${port}/demo5/`));
+server.listen(port, '127.0.0.1', () => console.log(`Musical Stones: http://127.0.0.1:${port}/musical-stones/`));
 server.on('error', error => {
   console.error(error.code === 'EADDRINUSE' ? `Port ${port} is in use. Choose another: PORT=4188 npm start` : error.message);
   process.exitCode = 1;

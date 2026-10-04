@@ -1,8 +1,8 @@
-# おとのつづき（仮）
+# Musical Stones
 
-遺跡で見つけた音の宝石を聴き、動かし、短い独自曲をよみがえらせる音楽パズル。3曲・3段階、楽譜の知識は不要です。静的HTML/CSS/JavaScriptとWebAudioで、GitHub Pagesの`/demo5/`配下に対応します。
+遺跡で見つけた音の宝石を聴き、動かし、短い独自曲をよみがえらせる音楽パズル。3曲・3段階、楽譜の知識は不要です。静的HTML/CSS/JavaScriptとWebAudioで、GitHub Pagesの`/musical-stones/`配下に対応します。
 
-**現在の版は v0.4.1。** [GitHub Pagesで遊ぶ](https://monnouchi.github.io/demo5/?v=0.4.0)／[3曲を聴き比べる](https://monnouchi.github.io/demo5/review/?v=0.4.0)。2・3曲目の音楽、曲名、短い操作の光を更新し、1曲目の音楽と3段階・自由配置を維持しています。
+**現在の版は v0.4.2。** [GitHub Pagesで遊ぶ](https://monnouchi.github.io/musical-stones/?v=0.4.2)／[3曲を聴き比べる](https://monnouchi.github.io/musical-stones/review/?v=0.4.2)。正式タイトル、古びた石の台座に彫った五線、曲全体の完成時に輝きと回転を取り戻す宝石を更新。音楽と3段階・自由配置を維持しています。
 
 ## 3曲を聴き比べる
 
@@ -10,7 +10,7 @@
 npm start
 ```
 
-Node.js 20以降、アプリの依存インストール不要。試聴は <http://127.0.0.1:4187/demo5/review/>、ゲームは <http://127.0.0.1:4187/demo5/>。ポート変更は`PORT=4188 npm start`。ES modulesのためHTTPで開きます。
+Node.js 20以降、アプリの依存インストール不要。試聴は <http://127.0.0.1:4187/musical-stones/review/>、ゲームは <http://127.0.0.1:4187/musical-stones/>。ポート変更は`PORT=4188 npm start`。ES modulesのためHTTPで開きます。
 
 | 曲 | 調・拍子 | 完成WAV |
 | --- | --- | --- |
@@ -56,15 +56,15 @@ npm run check
 実Chrome QAは開発用Playwright CLIとGoogle Chromeで実行します。
 
 ```sh
-playwright-cli -s=demo5-free open http://127.0.0.1:4187/demo5/ --config=scripts/chrome-qa.config.json
-playwright-cli -s=demo5-free run-code --filename=scripts/startup-qa.js
-playwright-cli -s=demo5-free run-code --filename=scripts/browser-qa.js
-playwright-cli -s=demo5-free run-code --filename=scripts/mobile-qa.js
-playwright-cli -s=demo5-free run-code --filename=scripts/review-qa.js
-playwright-cli -s=demo5-free run-code --filename=scripts/audio-qa.js
-playwright-cli -s=demo5-free run-code --filename=scripts/set-sample-qa.js
-playwright-cli -s=demo5-free run-code --filename=scripts/effects-qa.js
-playwright-cli -s=demo5-free close
+playwright-cli -s=musical-stones-qa open http://127.0.0.1:4187/musical-stones/ --config=scripts/chrome-qa.config.json
+playwright-cli -s=musical-stones-qa run-code --filename=scripts/startup-qa.js
+playwright-cli -s=musical-stones-qa run-code --filename=scripts/browser-qa.js
+playwright-cli -s=musical-stones-qa run-code --filename=scripts/mobile-qa.js
+playwright-cli -s=musical-stones-qa run-code --filename=scripts/review-qa.js
+playwright-cli -s=musical-stones-qa run-code --filename=scripts/audio-qa.js
+playwright-cli -s=musical-stones-qa run-code --filename=scripts/set-sample-qa.js
+playwright-cli -s=musical-stones-qa run-code --filename=scripts/effects-qa.js
+playwright-cli -s=musical-stones-qa close
 ```
 
 試聴WAVは`node scripts/render-song.mjs`で再生成（既存の承認済み1曲目WAVは保持）。開発用Playwright Coreのimport先を`DEMO5_PLAYWRIGHT_MODULE`で指定できます。レンダリング用Chromeは`finally`で終了します。結果・制約は [docs/QA.md](docs/QA.md)。旧公開版の重点レビューは [docs/REVIEW.md](docs/REVIEW.md)。

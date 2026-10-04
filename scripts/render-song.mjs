@@ -7,8 +7,8 @@ try {
  await mkdir('review',{recursive:true});
  for(const index of [0,1,2]){
   const result=await page.evaluate(async(index)=>{
-   const {LEVELS,timeline}=await import('./src/music.js?v=0.4.1');
-   const {SoundPlayer}=await import('./src/audio.js?v=0.4.1');
+   const {LEVELS,timeline}=await import('./src/music.js?v=0.4.2');
+   const {SoundPlayer}=await import('./src/audio.js?v=0.4.2');
    const level=LEVELS[index],score=timeline(level,level.fragments.map(f=>f.id),true),rate=44100;
    const ctx=new OfflineAudioContext(1,Math.ceil((score.duration+score.tailDuration+.30)*rate),rate);
    const player=new SoundPlayer();player.context=ctx;player.master=ctx.createGain();player.master.gain.value=1;player.master.connect(ctx.destination);

@@ -3,7 +3,7 @@ async(page)=>{
  const phone=await context.newPage();let checks=0;const errors=[];phone.on('pageerror',e=>errors.push(e.message));
  const assert=(v,msg)=>{if(!v)throw new Error(msg);checks++;};
  try{
-  await phone.goto('http://127.0.0.1:4187/demo5/');await phone.locator('#levels button').nth(2).tap();const cdp=await context.newCDPSession(phone);
+  await phone.goto('http://127.0.0.1:4187/musical-stones/');await phone.locator('#levels button').nth(2).tap();const cdp=await context.newCDPSession(phone);
   const saved=()=>phone.evaluate(()=>JSON.parse(localStorage.getItem('demo5.sound-stitch.v1')).puzzles.lantern);
   const board=()=>phone.evaluate(()=>{const b=document.getElementById('gem-stage'),r=b.getBoundingClientRect();return{x:r.left+b.clientLeft,y:r.top+b.clientTop,w:b.clientWidth,h:b.clientHeight};});
   const point=async(x,y)=>{const b=await board();return{x:b.x+x*b.w,y:b.y+y*b.h};};

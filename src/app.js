@@ -1,8 +1,8 @@
-import { LEVELS } from './music.js?v=0.4.1';
-import { solution, newPuzzle, place, moveFree, evaluate, readState, saveState } from './game.js?v=0.4.1';
-import { geometry, dropTarget, applyDrop, gemPoint, magnetPoint, clampPoint } from './interaction.js?v=0.4.1';
-import { SoundPlayer } from './audio.js?v=0.4.1';
-import { MagicEffects } from './effects.js?v=0.4.1';
+import { LEVELS } from './music.js?v=0.4.2';
+import { solution, newPuzzle, place, moveFree, evaluate, readState, saveState } from './game.js?v=0.4.2';
+import { geometry, dropTarget, applyDrop, gemPoint, magnetPoint, clampPoint } from './interaction.js?v=0.4.2';
+import { SoundPlayer } from './audio.js?v=0.4.2';
+import { MagicEffects } from './effects.js?v=0.4.2';
 
 const $ = id => document.getElementById(id);
 let storage;
@@ -173,6 +173,7 @@ function render() {
     });
     renderedLevel = current.id;
   }
+  $('gem-stage').classList.toggle('is-awakened', awakened);
   controls(); layout(); soundSettings();
   $('feedback').textContent = feedback || (state.solved.includes(current.id) ? 'この曲はよみがえりました。何度でも聴いて遊べます。' : current.subtitle);
   $('feedback').className = `feedback ${feedbackKind}`;
@@ -307,7 +308,7 @@ document.addEventListener('keydown', event => {
   else if (event.key.toLowerCase() === 's') { event.preventDefault(); effects.clear();player.stop(); }
   else if (event.key.toLowerCase() === 'm') { event.preventDefault(); toggleMute(); }
 });
-document.addEventListener('visibilitychange', () => { if (document.hidden) { cancelDrag(); player.background(); persist(); } });
+document.addEventListener('visibilitychange', () => { document.body.classList.toggle('is-background',document.hidden); if (document.hidden) { cancelDrag(); player.background(); persist(); } });
 window.addEventListener('pagehide', () => { cancelDrag(); player.background(); persist(); });
 window.addEventListener('resize',()=>{effects.clear();if(drag)cancelDrag();layout();});
 new ResizeObserver(()=>{effects.clear();if(drag)cancelDrag();layout();}).observe($('gem-stage'));

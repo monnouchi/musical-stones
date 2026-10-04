@@ -1,6 +1,6 @@
 async(page)=>{
  let checks=0;const assert=(v,msg)=>{if(!v)throw new Error(msg);checks++;};
- await page.goto('http://127.0.0.1:4187/demo5/');await page.setViewportSize({width:390,height:664});await page.emulateMedia({reducedMotion:'no-preference'});await page.locator('#levels button').nth(2).click();
+ await page.goto('http://127.0.0.1:4187/musical-stones/');await page.setViewportSize({width:390,height:664});await page.emulateMedia({reducedMotion:'no-preference'});await page.locator('#levels button').nth(2).click();
  const saved=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('demo5.sound-stitch.v1')).puzzles.lantern);
  const put=async(id,n)=>{await page.locator(`[data-gem="${id}"]`).focus();await page.keyboard.press(String(n+1));};
  const ids=['l-moss','l-rain','l-fern','l-shell'];for(let i=0;i<4;i++)await put(ids[i],i);

@@ -1,7 +1,7 @@
 async(page)=>{
  let checks=0;const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
  const assert=(v,msg)=>{if(!v)throw new Error(msg);checks++;};
- await page.goto('http://127.0.0.1:4187/demo5/review/');
+ await page.goto('http://127.0.0.1:4187/musical-stones/review/');
  await page.waitForFunction(()=>document.querySelectorAll('audio').length===3&&[...document.querySelectorAll('audio')].every(a=>Number.isFinite(a.duration)));
  const initial=await page.locator('audio').evaluateAll(as=>as.map(a=>({duration:a.duration,paused:a.paused,volume:a.volume})));
  assert(initial.every(a=>a.paused&&a.volume===.65),'initial silence');
