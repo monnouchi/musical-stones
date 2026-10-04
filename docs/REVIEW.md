@@ -31,3 +31,5 @@
 80項目の通し操作、native touch16項目、重点項目17件、Node19テストと6編曲の実WebAudioを検証。デジタル出力にNaN・クリッピングなし、停止後133発音が終了し管理ノード0。物理端末や初心者の実聴は未確認。
 
 重大な実装上の未解決は見つからなかった。本人の公開承認に従い、現在のpublic／main／rootのPages設定へ通常pushする。公開時はexact commit、Pages workflow、ライブ配信の主要ファイル一致と実Chromeの開始・試聴・完成・停止を確認する。
+
+公開時にPagesのJavaScriptの`max-age=600`を確認したため、v0.2.1ではCSS・entry・全module importのURLへ同じ版番号を付けた。旧版のキャッシュが残る再訪でも、一つの版のファイル群を読み込む。公開Chromeで実際のrequest URLを確認する。

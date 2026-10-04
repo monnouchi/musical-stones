@@ -1,4 +1,4 @@
-import { place, remove } from './game.js';
+import { place, remove } from './game.js?v=0.2.1';
 
 export function geometry(width, height, count) {
   return { width, height, count, socketY: height * .29, shelfY: height * .77, x: i => (i + .5) * width / count };

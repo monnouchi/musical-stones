@@ -2,7 +2,7 @@
 
 GitHub Pages 向けの静的な音楽パズルです。遺跡で見つけた音の宝石を聴き、石のくぼみに並べて、小さなオリジナル曲をよみがえらせます。楽譜・音名・音楽理論の知識は不要です。Happaとつくるサンプルゲームとして、3つの曲を磨く試作です。
 
-v0.2 は宝石の直接操作、曲・音色・完成演出を刷新しました。公開URL: <https://monnouchi.github.io/demo5/>。重点レビューは [docs/REVIEW.md](docs/REVIEW.md) を参照してください。
+v0.2.1 は宝石の直接操作、曲・音色・完成演出を刷新しました。公開URL: <https://monnouchi.github.io/demo5/>。重点レビューは [docs/REVIEW.md](docs/REVIEW.md) を参照してください。
 
 ## ローカルで遊ぶ
 
@@ -55,7 +55,7 @@ npm start
 
 配信に必要なファイルは `index.html`、`style.css`、`src/`、`assets/`、`.nojekyll`。相対URLで `/demo5/` 配下に対応し、ビルド工程・バックエンド・外部APIは不要です。
 
-mon によって Pages の公開設定済みです。**Settings → Pages → Build and deployment → Deploy from a branch** で branch `main`、folder `/(root)` を指定する構成です。追加の公開 workflow は不要です。既存の設定や可視性は今回の改修で変更していません。
+mon によって Pages の公開設定済みです。**Settings → Pages → Build and deployment → Deploy from a branch** で branch `main`、folder `/(root)` を指定する構成です。追加の公開 workflow は不要です。CSSとJavaScriptのURLには同じ版番号を付け、旧版キャッシュとの混在を避けます。配信に関わるファイルを変更するリリースでは、HTMLと各moduleの`?v=`をまとめて更新してください。既存の設定や可視性は今回の改修で変更していません。
 
 ## 検証
 

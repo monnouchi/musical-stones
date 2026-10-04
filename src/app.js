@@ -1,7 +1,7 @@
-import { LEVELS } from './music.js';
-import { solution, shuffled, place, remove, evaluate, readState, saveState } from './game.js';
-import { geometry, dropTarget, applyDrop } from './interaction.js';
-import { SoundPlayer } from './audio.js';
+import { LEVELS } from './music.js?v=0.2.1';
+import { solution, shuffled, place, remove, evaluate, readState, saveState } from './game.js?v=0.2.1';
+import { geometry, dropTarget, applyDrop } from './interaction.js?v=0.2.1';
+import { SoundPlayer } from './audio.js?v=0.2.1';
 
 const $ = id => document.getElementById(id);
 let storage;
