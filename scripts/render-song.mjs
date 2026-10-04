@@ -4,8 +4,8 @@ const browser=await chromium.launch({channel:'chrome',headless:true});
 try {
  const page=await browser.newPage();await page.goto('http://127.0.0.1:4187/demo5/');
  const result=await page.evaluate(async()=>{
-  const {LEVELS,timeline}=await import('./src/music.js?v=0.3.0-local');
-  const {SoundPlayer}=await import('./src/audio.js?v=0.3.0-local');
+  const {LEVELS,timeline}=await import('./src/music.js?v=0.3.0');
+  const {SoundPlayer}=await import('./src/audio.js?v=0.3.0');
   const score=timeline(LEVELS[0],LEVELS[0].fragments.map(f=>f.id),true),rate=44100;
   const ctx=new OfflineAudioContext(1,Math.ceil((score.duration+score.tailDuration+.30)*rate),rate);
   const player=new SoundPlayer();player.context=ctx;player.master=ctx.createGain();player.master.gain.value=1;player.master.connect(ctx.destination);

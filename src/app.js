@@ -1,7 +1,7 @@
-import { LEVELS } from './music.js?v=0.3.0-local';
-import { solution, shuffled, place, moveFree, evaluate, readState, saveState } from './game.js?v=0.3.0-local';
-import { geometry, dropTarget, applyDrop, gemPoint, magnetPoint, clampPoint } from './interaction.js?v=0.3.0-local';
-import { SoundPlayer } from './audio.js?v=0.3.0-local';
+import { LEVELS } from './music.js?v=0.3.0';
+import { solution, shuffled, place, moveFree, evaluate, readState, saveState } from './game.js?v=0.3.0';
+import { geometry, dropTarget, applyDrop, gemPoint, magnetPoint, clampPoint } from './interaction.js?v=0.3.0';
+import { SoundPlayer } from './audio.js?v=0.3.0';
 
 const $ = id => document.getElementById(id);
 let storage;

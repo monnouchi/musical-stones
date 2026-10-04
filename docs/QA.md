@@ -1,3 +1,5 @@
+> 以下は承認済みv0.3のローカル検証記録。公開用v0.3.0は版番号・公開案内のみを更新。公開CI・配信ファイル一致・公開Chrome確認は`output/playwright/deploy-v0.3-proof.json`に記録する。
+
 # ローカル試作 v0.3 の検証記録
 
 2026-10-04。macOS、Google Chrome 154、Playwright CLI 0.1.22、Node.js 25。専用Chromeを隔離して検証。現在の公開版はv0.2.1（`ac3ec56`）で、以下の変更はローカルだけ。push・Pages設定・可視性の変更はしていない。別Stopwatchへ変更なし。

@@ -2,7 +2,7 @@
 
 遺跡で見つけた音の宝石を聴き、動かし、短い独自曲をよみがえらせる音楽パズル。3曲・3段階、楽譜の知識は不要です。静的HTML/CSS/JavaScriptとWebAudioで、GitHub Pagesの`/demo5/`配下に対応します。
 
-**現在のローカル試作は v0.3.0-local。公開は保留です。** 宝石を自由な位置へ動かす操作と、1曲だけ作り直したオルゴール風の試聴を用意しました。[公開版v0.2.1](https://monnouchi.github.io/demo5/?v=0.2.1)とは異なります。
+**現在の版は v0.3.0。** [GitHub Pagesで遊ぶ](https://monnouchi.github.io/demo5/?v=0.3.0)。宝石を自由な位置へ動かす操作と、1曲だけ作り直したオルゴール風の試聴を用意しました。[新しい1曲を聴く](https://monnouchi.github.io/demo5/review/first-song.html?v=0.3.0)。
 
 ## まず新しい1曲を聴く
 
