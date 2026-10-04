@@ -904,3 +904,8 @@ body.is-background .gem-face,body.is-background .gem-facet {animation-play-state
 /* The short non-modal hint must never block stone placement beneath it. */
 .reference-guide {pointer-events:none}
 .guide-dismiss {pointer-events:auto}
+
+.reference-guide.is-stones {right:auto;transition:left .19s ease,top .19s ease}
+.reference-guide.is-stones:before {left:calc(var(--guide-arrow-x) - 5px);right:auto;top:auto;bottom:-6px;border:0;border-right:1px solid #8d9874;border-bottom:1px solid #8d9874}
+.gem.is-guide-target {outline:2px dashed #788a63;outline-offset:2px}
+@media(prefers-reduced-motion:reduce) {.reference-guide.is-stones {transition:none}}

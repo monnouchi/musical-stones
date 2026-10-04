@@ -1,11 +1,11 @@
-import { LEVELS } from './music.js?v=0.4.4';
-import { solution, newPuzzle, place, moveFree, evaluate, readState, saveState } from './game.js?v=0.4.4';
-import { geometry, dropTarget, applyDrop, gemPoint, magnetPoint, clampPoint } from './interaction.js?v=0.4.4';
-import { SoundPlayer } from './audio.js?v=0.4.4';
-import { MagicEffects } from './effects.js?v=0.4.4';
+import { LEVELS } from './music.js?v=0.4.5';
+import { solution, newPuzzle, place, moveFree, evaluate, readState, saveState } from './game.js?v=0.4.5';
+import { geometry, dropTarget, applyDrop, gemPoint, magnetPoint, clampPoint } from './interaction.js?v=0.4.5';
+import { SoundPlayer } from './audio.js?v=0.4.5';
+import { MagicEffects } from './effects.js?v=0.4.5';
 
-import { ReferenceGuide } from './reference-guide.js?v=0.4.4';
-import { gemFaces, startGemVisuals } from './gem-visual.js?v=0.4.4';
+import { ReferenceGuide } from './reference-guide.js?v=0.4.5';
+import { gemFaces, startGemVisuals } from './gem-visual.js?v=0.4.5';
 
 const gemVisuals = startGemVisuals();
 const $ = id => document.getElementById(id);
@@ -38,14 +38,43 @@ function gemArt(id) {
 function persist() {
   if (!saveState(storage, state)) $('playback-state').textContent = '保存できない環境です。この画面では遊べます。';
 }
+function guideGem() {
+  // Physical position only: neither the melody nor its solution chooses the target.
+  return [...gems.values()].sort((a,b)=>parseFloat(a.style.top)-parseFloat(b.style.top)||parseFloat(a.style.left)-parseFloat(b.style.left))[0];
+}
+function positionGuide() {
+  if(guide.step!=='stones')return;
+  const hint=$('reference-guide'),target=guideGem();
+  if(!target)return;
+  const stage=$('gem-stage'),width=hint.offsetWidth;
+  const x=parseFloat(target.style.left),y=parseFloat(target.style.top);
+  const left=Math.max(8,Math.min(stage.clientWidth-width-8,x-width/2));
+  hint.style.left=`${left}px`;
+  hint.style.top=`${y-target.offsetHeight/2-hint.offsetHeight-14}px`;
+  hint.style.setProperty('--guide-arrow-x',`${x-left}px`);
+  hint.dataset.anchor=target.dataset.gem;
+}
 function renderGuide() {
-  const shown=guide.step!=='hidden';
-  $('reference-guide').hidden=!shown;
+  const hint=$('reference-guide'),stones=guide.step==='stones',shown=guide.step!=='hidden';
+  const parent=stones ? $('gem-stage') : $('reference').parentElement;
+  if(hint.parentElement!==parent)parent.append(hint);
+  hint.hidden=!shown;
+  hint.classList.toggle('is-stones',stones);
   $('reference').classList.toggle('is-guided',guide.step==='reference');
-  if(shown)$('reference').setAttribute('aria-describedby','reference-guide-text');
-  else $('reference').removeAttribute('aria-describedby');
-  $('reference-guide-text').textContent=guide.step==='stones' ? 'つぎは宝石に触れて音を聴き、くぼみへ動かしてみましょう。' : guideError ? '音を開始できませんでした。「お手本」をもう一度押すか、スキップできます。' : state.muted||state.volume===0 ? 'まず完成した曲を聴きましょう。今は消音中です。「音あり」や音量で調整してから、お手本を押してください。' : 'まず「お手本」で完成した曲を聴きましょう。音のつながりを覚えると、宝石を並べやすくなります。';
-  $('guide-dismiss').textContent=guide.step==='stones' ? '閉じる' : 'スキップ';
+  $('reference').removeAttribute('aria-describedby');
+  gems.forEach(el=>{el.classList.remove('is-guide-target');el.removeAttribute('aria-describedby');});
+  if(stones){
+    const target=guideGem();
+    target?.classList.add('is-guide-target');
+    target?.setAttribute('aria-describedby','reference-guide-text');
+  }else{
+    hint.style.removeProperty('left');hint.style.removeProperty('top');
+    hint.style.removeProperty('--guide-arrow-x');delete hint.dataset.anchor;
+    if(shown)$('reference').setAttribute('aria-describedby','reference-guide-text');
+  }
+  $('reference-guide-text').textContent=stones ? 'この宝石に触れて音を聴き、くぼみへ動かしてみましょう。どの宝石からでも遊べます。' : guideError ? '音を開始できませんでした。「お手本」をもう一度押すか、スキップできます。' : state.muted||state.volume===0 ? 'まず完成した曲を聴きましょう。今は消音中です。「音あり」や音量で調整してから、お手本を押してください。' : 'まず「お手本」で完成した曲を聴きましょう。音のつながりを覚えると、宝石を並べやすくなります。';
+  $('guide-dismiss').textContent=stones ? '閉じる' : 'スキップ';
+  positionGuide();
 }
 function soundSettings() {
   for (const id of ['mute', 'room-mute']) {
@@ -144,6 +173,7 @@ function layout(displayPuzzle = puzzle(), movingPoint = null) {
     const x1=a.x+16,x2=b.x-16,y1=a.y+7,y2=b.y+7;
     return `<path class="light-link${drag?.isDragging ? ' is-preview' : ''}" d="M${x1} ${y1} C${x1+12} ${y1+27}, ${x2-12} ${y2+27}, ${x2} ${y2}"/>`;
   }).join('');
+  if(guide.step==='stones')renderGuide();
 }
 function render() {
   const current = level();
@@ -220,7 +250,7 @@ function pointerMove(event) {
   if(geometryChanged(drag)){cancelDrag();return;}
   if(!drag.isDragging&&Math.hypot(event.clientX-drag.startX,event.clientY-drag.startY)<8)return;
   if(!drag.isDragging){
-    drag.isDragging=true;active=drag.id;player.stop();controls();
+    drag.isDragging=true;active=drag.id;guide.preview();renderGuide();player.stop();controls();
     drag.el.classList.add('is-dragging');$('gem-stage').classList.add('is-dragging');
     status(`${name(drag.id)} を移動中。近づくと吸着。`);
   }
@@ -303,7 +333,7 @@ $('reference').addEventListener('click', async () => {
   else guideError=true;
   renderGuide();
 });
-$('guide-dismiss').addEventListener('click',()=>{guide.skip();renderGuide();$('reference').focus({preventScroll:true});});
+$('guide-dismiss').addEventListener('click',()=>{const target=guide.step==='stones'?guideGem():$('reference');guide.skip();renderGuide();target?.focus({preventScroll:true});});
 $('guide-again').addEventListener('click',()=>{guide.reopen();guideError=false;renderGuide();$('reference').scrollIntoView({block:'center'});$('reference').focus({preventScroll:true});});
 $('place-active').addEventListener('click',()=>{if(!active)return;const g=boardGeometry(),point=gemPoint(puzzle(),active,g);const empty=puzzle().slots.map((id,i)=>id?null:i).filter(i=>i!==null).sort((a,b)=>Math.abs(g.x(a)-point.x)-Math.abs(g.x(b)-point.x));if(empty.length)put(empty[0]);});
 $('move-left').addEventListener('click', () => moveActive(-1));
