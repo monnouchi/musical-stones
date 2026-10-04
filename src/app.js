@@ -1,16 +1,19 @@
-import { LEVELS } from './music.js?v=0.4.3';
-import { solution, newPuzzle, place, moveFree, evaluate, readState, saveState } from './game.js?v=0.4.3';
-import { geometry, dropTarget, applyDrop, gemPoint, magnetPoint, clampPoint } from './interaction.js?v=0.4.3';
-import { SoundPlayer } from './audio.js?v=0.4.3';
-import { MagicEffects } from './effects.js?v=0.4.3';
+import { LEVELS } from './music.js?v=0.4.4';
+import { solution, newPuzzle, place, moveFree, evaluate, readState, saveState } from './game.js?v=0.4.4';
+import { geometry, dropTarget, applyDrop, gemPoint, magnetPoint, clampPoint } from './interaction.js?v=0.4.4';
+import { SoundPlayer } from './audio.js?v=0.4.4';
+import { MagicEffects } from './effects.js?v=0.4.4';
 
-import { gemFaces, startGemVisuals } from './gem-visual.js?v=0.4.3';
+import { ReferenceGuide } from './reference-guide.js?v=0.4.4';
+import { gemFaces, startGemVisuals } from './gem-visual.js?v=0.4.4';
 
 const gemVisuals = startGemVisuals();
 const $ = id => document.getElementById(id);
 let storage;
 try { storage = window.localStorage; } catch { storage = null; }
 const state = readState(storage);
+const guide = new ReferenceGuide(storage);
+let guideError = false;
 let active = null, feedback = '', feedbackKind = '', lastPlaying = null, drag = null;
 let renderedLevel = null, suppressClickUntil = 0;
 let awakened = false;
@@ -35,12 +38,22 @@ function gemArt(id) {
 function persist() {
   if (!saveState(storage, state)) $('playback-state').textContent = '保存できない環境です。この画面では遊べます。';
 }
+function renderGuide() {
+  const shown=guide.step!=='hidden';
+  $('reference-guide').hidden=!shown;
+  $('reference').classList.toggle('is-guided',guide.step==='reference');
+  if(shown)$('reference').setAttribute('aria-describedby','reference-guide-text');
+  else $('reference').removeAttribute('aria-describedby');
+  $('reference-guide-text').textContent=guide.step==='stones' ? 'つぎは宝石に触れて音を聴き、くぼみへ動かしてみましょう。' : guideError ? '音を開始できませんでした。「お手本」をもう一度押すか、スキップできます。' : state.muted||state.volume===0 ? 'まず完成した曲を聴きましょう。今は消音中です。「音あり」や音量で調整してから、お手本を押してください。' : 'まず「お手本」で完成した曲を聴きましょう。音のつながりを覚えると、宝石を並べやすくなります。';
+  $('guide-dismiss').textContent=guide.step==='stones' ? '閉じる' : 'スキップ';
+}
 function soundSettings() {
   for (const id of ['mute', 'room-mute']) {
     $(id).textContent = state.muted ? '消音中' : '音あり';
     $(id).setAttribute('aria-pressed', String(state.muted));
   }
   for (const id of ['volume', 'room-volume']) $(id).value = Math.round(state.volume * 100);
+  renderGuide();
 }
 function closeRoom() {
   if ($('listening-room').open) $('listening-room').close();
@@ -85,6 +98,7 @@ function changeLevel(index) {
   persist(); render(); status('自由に動かして、くぼみの近くへ。');
 }
 function audition(id) {
+  guide.preview(); renderGuide();
   active = id; controls();
   status(`${name(id)}：自由に動かす／盤面をタップ／はめる。`);
   player.play(level(), [id], { label: `${name(id)} を再生中` });
@@ -282,7 +296,15 @@ function check() {
     feedback = `もう少し。${level().hint}`; feedbackKind = 'retry'; render();
   }
 }
-$('reference').addEventListener('click', () => {effects.clear();player.play(level(), solution(level()), {rich:level().instrument==='musicbox',label:'お手本を再生中',revealFragments:false});});
+$('reference').addEventListener('click', async () => {
+  effects.clear(); guideError=false; renderGuide();
+  const started=await player.play(level(), solution(level()), {rich:level().instrument==='musicbox',label:'お手本を再生中',revealFragments:false});
+  if(started)guide.started(!state.muted&&state.volume>0);
+  else guideError=true;
+  renderGuide();
+});
+$('guide-dismiss').addEventListener('click',()=>{guide.skip();renderGuide();$('reference').focus({preventScroll:true});});
+$('guide-again').addEventListener('click',()=>{guide.reopen();guideError=false;renderGuide();$('reference').scrollIntoView({block:'center'});$('reference').focus({preventScroll:true});});
 $('place-active').addEventListener('click',()=>{if(!active)return;const g=boardGeometry(),point=gemPoint(puzzle(),active,g);const empty=puzzle().slots.map((id,i)=>id?null:i).filter(i=>i!==null).sort((a,b)=>Math.abs(g.x(a)-point.x)-Math.abs(g.x(b)-point.x));if(empty.length)put(empty[0]);});
 $('move-left').addEventListener('click', () => moveActive(-1));
 $('move-right').addEventListener('click', () => moveActive(1));

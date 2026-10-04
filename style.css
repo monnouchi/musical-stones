@@ -893,3 +893,14 @@ footer {
 @keyframes facet-shimmer {0%,100% {opacity:.3} 50% {opacity:.6}}
 body.is-background .gem-face,body.is-background .gem-facet {animation-play-state:paused!important}
 @media(prefers-reduced-motion:reduce) {.gem-stage.is-awakened .gem-face,.room-gem .gem-face,.gem-stage.is-awakened .gem-facet,.room-gem .gem-facet {animation:none;transition:none}}
+
+.reference-wrap {position:relative;flex:none}
+.reference-guide {position:absolute;right:0;top:calc(100% + 9px);width:250px;max-width:calc(100vw - 52px);padding:.75rem .85rem;background:#f6efd9;border:1px solid #8d9874;border-radius:.65rem;box-shadow:0 5px 17px #37463235;z-index:12;color:#2c433d;text-align:left}
+.reference-guide[hidden] {display:none}
+.reference-guide:before {content:"";position:absolute;right:24px;top:-6px;width:10px;height:10px;transform:rotate(45deg);background:#f6efd9;border-left:1px solid #8d9874;border-top:1px solid #8d9874}
+.reference-guide p {font-size:.8125rem;line-height:1.6;margin:0 0 .4rem}
+.guide-dismiss {min-height:2.75rem;background:transparent;text-decoration:underline;padding:.25rem .5rem;font-size:.8125rem;color:#345f4c}
+#reference.is-guided {box-shadow:0 0 0 3px #acbd8399;outline:1px solid #6f8555}
+/* The short non-modal hint must never block stone placement beneath it. */
+.reference-guide {pointer-events:none}
+.guide-dismiss {pointer-events:auto}
