@@ -1,4 +1,4 @@
-import { place, moveFree, worldPosition } from './game.js?v=0.4.0-local';
+import { place, moveFree, worldPosition } from './game.js?v=0.4.0';
 
 export function geometry(width, height, count, gemWidth=68, gemHeight=84) {
   return {width,height,count,socketY:height*.29,shelfY:height*.77,x:i=>(i+.5)*width/count,halfW:Math.min(width/2,gemWidth/2+3),halfH:Math.min(height/2,gemHeight/2+3),radiusX:Math.min(38,width/count*.44),radiusY:40};

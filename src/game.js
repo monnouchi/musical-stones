@@ -1,4 +1,4 @@
-import { LEVELS } from './music.js?v=0.4.0-local';
+import { LEVELS } from './music.js?v=0.4.0';
 
 export const STORAGE_KEY = 'demo5.sound-stitch.v1';
 export const solution = level => level.fragments.map(f => f.id);

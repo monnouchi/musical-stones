@@ -2,7 +2,7 @@
 
 遺跡で見つけた音の宝石を聴き、動かし、短い独自曲をよみがえらせる音楽パズル。3曲・3段階、楽譜の知識は不要です。静的HTML/CSS/JavaScriptとWebAudioで、GitHub Pagesの`/demo5/`配下に対応します。
 
-**現在のローカル候補は v0.4.0-local。公開は保留です。** 公開中の[v0.3.0](https://monnouchi.github.io/demo5/?v=0.3.0)から、2・3曲目の音楽、曲名、短い操作の光を更新しました。1曲目の音楽と3段階・自由配置を維持しています。
+**現在の版は v0.4.0。** [GitHub Pagesで遊ぶ](https://monnouchi.github.io/demo5/?v=0.4.0)／[3曲を聴き比べる](https://monnouchi.github.io/demo5/review/?v=0.4.0)。2・3曲目の音楽、曲名、短い操作の光を更新し、1曲目の音楽と3段階・自由配置を維持しています。
 
 ## 3曲を聴き比べる
 

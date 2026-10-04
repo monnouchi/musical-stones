@@ -1,3 +1,5 @@
+> 承認済み候補`439811f`をv0.4.0として公開する。以下は公開前のローカル検証記録。公開CI・配信ファイル一致・公開Chrome確認は`output/playwright/deploy-v0.4-proof.json`に記録する。
+
 # ローカル候補 v0.4 の検証記録
 
 2026-10-04。Mac上の専用checkout、Chrome 154（隔離・headless）、Playwright CLI、Node.js 25で確認。公開版v0.3.0（`66e72df`）は変更していない。新候補はローカルだけ。
