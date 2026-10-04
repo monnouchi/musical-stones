@@ -2,17 +2,25 @@
 
 遺跡で見つけた音の宝石を聴き、動かし、短い独自曲をよみがえらせる音楽パズル。3曲・3段階、楽譜の知識は不要です。静的HTML/CSS/JavaScriptとWebAudioで、GitHub Pagesの`/demo5/`配下に対応します。
 
-**現在の版は v0.3.0。** [GitHub Pagesで遊ぶ](https://monnouchi.github.io/demo5/?v=0.3.0)。宝石を自由な位置へ動かす操作と、1曲だけ作り直したオルゴール風の試聴を用意しました。[新しい1曲を聴く](https://monnouchi.github.io/demo5/review/first-song.html?v=0.3.0)。
+**現在のローカル候補は v0.4.0-local。公開は保留です。** 公開中の[v0.3.0](https://monnouchi.github.io/demo5/?v=0.3.0)から、2・3曲目の音楽、曲名、短い操作の光を更新しました。1曲目の音楽と3段階・自由配置を維持しています。
 
-## まず新しい1曲を聴く
+## 3曲を聴き比べる
 
 ```sh
 npm start
 ```
 
-Node.js 20以降、アプリの依存インストール不要。試聴は <http://127.0.0.1:4187/demo5/review/first-song.html>、ゲームは <http://127.0.0.1:4187/demo5/>。WAV本体は [review/sprout-musicbox.wav](review/sprout-musicbox.wav)。ポート変更は`PORT=4188 npm start`。ES modulesのため`file://`ではなくHTTPで開きます。
+Node.js 20以降、アプリの依存インストール不要。試聴は <http://127.0.0.1:4187/demo5/review/>、ゲームは <http://127.0.0.1:4187/demo5/>。ポート変更は`PORT=4188 npm start`。ES modulesのためHTTPで開きます。
 
-1曲目を3拍子・8小節、モチーフの反復→移調→問いかけ→返事・回帰→終止として作り直しました。約17秒。WAVはゲームと同じWebAudio合成で出力した完成曲です。残り2曲の楽曲データは変更せず、横展開はこの1曲の試聴後に判断します。設計は [docs/PROTOTYPE-v0.3.md](docs/PROTOTYPE-v0.3.md)。
+| 曲 | 調・拍子 | 完成WAV |
+| --- | --- | --- |
+| 芽吹く光 | ハ長調・3/4、96 BPM | [16.95秒](review/sprout-musicbox.wav) |
+| 水晶のこだま | ト長調・2/4、108 BPM | [15.28秒](review/walk-musicbox.wav) |
+| 月影の祈り | ニ短調・3/4、88 BPM | [18.31秒](review/lantern-musicbox.wav) |
+
+1曲目の音列・編曲・音色・WAVを保ち、名前だけを変えました。2・3曲目は完成曲を先に書き、小節の頭に旋律と低音を置き、自然なフレーズで3／4断片に分けています。新2曲は裏拍の音を強拍へまたがせず、反復・応答・休符で拍を感じられる形にしました。設計は [docs/PROTOTYPE-v0.4.md](docs/PROTOTYPE-v0.4.md)。
+
+試聴ページは明示再生・一曲ずつ・個別停止／全停止・音量／消音に対応し、背景で停止、復帰時の自動再生なし。WAVはゲームと同じ独自WebAudio合成から出力しています。
 
 ## 自由に動かす
 
@@ -32,7 +40,9 @@ Node.js 20以降、アプリの依存インストール不要。試聴は <http:
 | Delete / Backspace | 台座から外す |
 | P / S / Esc / M | 並びを再生／停止・移動取消／ミュート |
 
-自由位置と台座順序を分けて保存し、再読み込み・サイズ変更でも保持します。音量・ミュート・達成も保存。画面を離れると停止し、戻っても自動再生しません。拡大文字とreduced-motionに対応します。
+触れた瞬間に宝石の面が光り、置くと小さな光粒が反応します。台座では波紋と接続光が流れます。正誤とは無関係、追加SEなし、reduced-motionでは静かな発光だけにします。
+
+自由位置と台座順序を分けて保存し、再読み込み・サイズ変更でも保持します。音量・ミュート・達成も保存。旧v0.3からは位置と1曲目の達成を保持し、作り直した2・3曲目の達成だけを解除します。画面を離れると停止し、戻っても自動再生しません。拡大文字とreduced-motionに対応します。
 
 正解はお手本の再構成。お手本は断片を発光させず、曲線の光は正誤に関係なく隣接宝石をつなぎます。色・A/B/C/Dは無作為な識別、全宝石が全台座に入ります。空の台座を飛ばして、配置済みの音だけを左から再生します。明示判定後は完成編曲と鑑賞画面が開き、停止・音量・ミュートを操作できます。
 
@@ -51,11 +61,12 @@ playwright-cli -s=demo5-free run-code --filename=scripts/browser-qa.js
 playwright-cli -s=demo5-free run-code --filename=scripts/mobile-qa.js
 playwright-cli -s=demo5-free run-code --filename=scripts/review-qa.js
 playwright-cli -s=demo5-free run-code --filename=scripts/audio-qa.js
-playwright-cli -s=demo5-free run-code --filename=scripts/sample-qa.js
+playwright-cli -s=demo5-free run-code --filename=scripts/set-sample-qa.js
+playwright-cli -s=demo5-free run-code --filename=scripts/effects-qa.js
 playwright-cli -s=demo5-free close
 ```
 
-試聴WAVは`node scripts/render-song.mjs`で再生成。開発用Playwright Coreのimport先を`DEMO5_PLAYWRIGHT_MODULE`で指定できます。レンダリング用Chromeは`finally`で終了します。結果・制約は [docs/QA.md](docs/QA.md)。旧公開版の重点レビューは [docs/REVIEW.md](docs/REVIEW.md)。
+試聴WAVは`node scripts/render-song.mjs`で再生成（既存の承認済み1曲目WAVは保持）。開発用Playwright Coreのimport先を`DEMO5_PLAYWRIGHT_MODULE`で指定できます。レンダリング用Chromeは`finally`で終了します。結果・制約は [docs/QA.md](docs/QA.md)。旧公開版の重点レビューは [docs/REVIEW.md](docs/REVIEW.md)。
 
 ## 配信構成と権利
 

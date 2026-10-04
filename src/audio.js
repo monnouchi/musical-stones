@@ -1,4 +1,4 @@
-import { timeline } from './music.js?v=0.3.0';
+import { timeline } from './music.js?v=0.4.0-local';
 
 // A defined upper harmonic gives the lead presence on small speakers without
 // increasing master volume. Chords and bass stay behind the melody.

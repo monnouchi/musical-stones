@@ -1,0 +1,13 @@
+{
+  "song": "水晶のこだま",
+  "key": "G major",
+  "meter": "2/4",
+  "bpm": 108,
+  "bars": 12,
+  "seconds": 15.283356009070294,
+  "sampleRate": 44100,
+  "channels": 1,
+  "peak": 0.19345588982105255,
+  "rms": 0.04289296640044412,
+  "noteEvents": 64
+}

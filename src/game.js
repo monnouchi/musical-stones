@@ -1,4 +1,4 @@
-import { LEVELS } from './music.js?v=0.3.0';
+import { LEVELS } from './music.js?v=0.4.0-local';
 
 export const STORAGE_KEY = 'demo5.sound-stitch.v1';
 export const solution = level => level.fragments.map(f => f.id);
@@ -42,17 +42,17 @@ export function evaluate(level, slots) {
   return solution(level).every((id, i) => id === slots[i]) ? 'correct' : 'retry';
 }
 export function freshState() {
-  return { version: 2, levelIndex: 0, puzzles: Object.fromEntries(LEVELS.map(l => [l.id, newPuzzle(l)])), solved: [], volume: .65, muted: false };
+  return { version: 3, levelIndex: 0, puzzles: Object.fromEntries(LEVELS.map(l => [l.id, newPuzzle(l)])), solved: [], volume: .65, muted: false };
 }
 export function restoreState(raw) {
   const state = freshState();
   try {
     const saved = JSON.parse(raw);
-    if (!saved || ![1,2].includes(saved.version)) return state;
+    if (!saved || ![1,2,3].includes(saved.version)) return state;
     if (Number.isInteger(saved.levelIndex) && saved.levelIndex >= 0 && saved.levelIndex < LEVELS.length) state.levelIndex = saved.levelIndex;
     if (typeof saved.volume === 'number' && Number.isFinite(saved.volume)) state.volume = Math.max(0, Math.min(1, saved.volume));
     state.muted = saved.muted === true;
-    state.solved = LEVELS.filter(l => Array.isArray(saved.solved) && saved.solved.includes(l.id) && !(saved.version===1 && l.id==='sprout')).map(l => l.id);
+    state.solved = LEVELS.filter(l => Array.isArray(saved.solved) && saved.solved.includes(l.id) && !(saved.version===1 && l.id==='sprout') && !(saved.version<3 && l.id!=='sprout')).map(l => l.id);
     for (const level of LEVELS) {
       const puzzle = saved.puzzles?.[level.id];
       const valid = solution(level);

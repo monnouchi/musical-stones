@@ -1,3 +1,53 @@
+# ローカル候補 v0.4 の検証記録
+
+2026-10-04。Mac上の専用checkout、Chrome 154（隔離・headless）、Playwright CLI、Node.js 25で確認。公開版v0.3.0（`66e72df`）は変更していない。新候補はローカルだけ。
+
+## 結果
+
+- Node **27 / 27成功**、構文チェック成功。
+- 全3曲のゲーム通し **68項目**、native touch **18項目**成功、pageerror 0。
+- 全曲試聴ページ **20項目**成功、pageerror／console error 0。初期無音、一曲ずつ、音量／消音、個別／全停止、背景停止と復帰時の停止維持、3曲とも自然終了、WAVのHTTP200とRIFF、320×568で横はみ出しなし。
+- 操作の光 **19項目**成功、pageerror 0。接触直後の発光と3粒、自由位置の着床光、台座の波紋と3本の接続光、全要素の寿命、20回の実ポインター連打（最大18 DOM要素）、停止・シャッフル・クリア・再生・曲切替・リサイズ・背景cleanupを確認。reduced-motionは粒／波紋／線の移動なし、180msの静的発光だけ。
+- 通しQAでは390×844／390×664／320×568 × 全3曲、操作後の文言を含めて停止まで同時表示、200%文字、保存復元、ドラッグ取消、交換と宝石の保存、お手本の発光0、判定前の報酬漏れ防止も確認。
+
+## 音楽の検証
+
+承認済み1曲目は音列・和声・拍子・BPM・通常／完成のイベントが一致。公開版のWAVもbyte単位で保持。音色エンジンは変更していない。改名は表示とメタデータだけ。
+
+3曲はC major／G major／D minor。新2曲について、すべての小節に旋律の強拍と低音、最終休符、半拍グリッド、裏拍を強拍へまたがせないことをNodeで検証。D minorではC-sharpを含むA7と最後のD minor和音、旋律C-sharp→Dを確認。全6編曲の旋律と通常／完成の一致、有限値、同一声部・同一音高・同時刻の重複なし。
+
+48kHz OfflineAudioContext、master1での実装出力：
+
+| 曲 | 通常 peak / RMS | 完成 peak / RMS | 完成イベント／発音数 |
+| --- | --- | --- | --- |
+| 芽吹く光 | .19501 / .04223 | .19033 / .04286 | 70 / 230 |
+| 水晶のこだま | .19210 / .04295 | .19353 / .04261 | 64 / 208 |
+| 月影の祈り | .14407 / .03179 | .14474 / .03229 | 59 / 188 |
+
+すべてNaN/Infinityなし、非ゼロ、クリッピングなし、末尾の余韻あり。実AudioContextでも3曲の全未来発音を停止し、150ms後にそれぞれ230／208／188のonended、管理ノード0、playing=false。
+
+主旋律の基本周波数は全曲370〜1046.5Hz。最も低い／高い旋律音を250〜6000HzのButterworth帯域に通したRMS比は.911／.998。オルゴール音の2／3倍音比は.097／.016。これは理想フィルターでの測定で、実スマホの周波数特性や音質の保証ではない。
+
+WAVは44.1kHz／16bit PCM／mono。16.95／15.283356／18.313651秒、サイズ1,495,034／1,348,036／1,615,308 bytes。完成曲と同じエンジンから出力し、最初の既存録音は保持した。
+
+## 光の連続capture
+
+`output/playwright/magic-touch-0.png`、`magic-touch-80.png`、`magic-free-drop.png`、`magic-snap-0.png`、`magic-snap-120.png`、`magic-snap-300.png`、`magic-settled.png`を実Chromeで順に撮影。接触の内側の明るい面、小さな粒、自由位置の反応、台座の波紋と曲線の光、最後に残らない状態を目視確認した。秒数は待機名で、画像取得の時間も含む実タイムスタンプは`set-effects.log`に記録。
+
+連打直後の390×664エミュレーションでrequestAnimationFrameの28フレームを測定し、中央値・最大とも16.7ms。これはheadless Chromeの短い測定で、実機モバイルFPSを保証しない。演出は18個・660msに制限し、JSの毎フレーム更新を使わない。
+
+## 証拠と未確認
+
+コードは`scripts/browser-qa.js`、`mobile-qa.js`、`audio-qa.js`、`set-sample-qa.js`、`effects-qa.js`。Git除外のログは`output/playwright/set-browser.log`、`set-mobile.log`、`set-audio.log`、`set-samples.log`、`set-effects.log`、`set-render.log`。設計は[PROTOTYPE-v0.4.md](PROTOTYPE-v0.4.md)。
+
+実iPhone Safari／Android、画面ロック／Bluetooth切替、実スピーカーの魅力、初心者が耳で解く難易度は未確認。背景は模擬visibilitychange。曲としての評価はユーザーの試聴が必要。今回の作業はローカル候補までで、公開・pushしていない。別Stopwatchへ変更なし。専用サーバー4187を継続する。
+
+専用Chrome `demo5-set`とレンダリング用Chromeは終了済み。CLIは`(no browsers)`、専用daemon PID52830とPlaywright専用プロファイルのChrome／helper残数0を確認。
+
+---
+
+以下は旧v0.3以前の記録。現在の音楽・演出の検証値には使用しない。
+
 > 以下は承認済みv0.3のローカル検証記録。公開用v0.3.0は版番号・公開案内のみを更新。公開CI・配信ファイル一致・公開Chrome確認は`output/playwright/deploy-v0.3-proof.json`に記録する。
 
 # ローカル試作 v0.3 の検証記録

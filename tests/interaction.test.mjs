@@ -50,12 +50,14 @@ test('resize clamps every free gem inside the current board without changing sto
  }
  assert.deepEqual(next.world.a,{x:.999,y:.001});assert.deepEqual(clampPoint(-4,999,geometry(276,210,4)),{x:37,y:165});
 });
-test('world state restores, malformed coordinates are repaired, and v1 migrates without losing the other songs',()=>{
+test('world state restores, malformed coordinates are repaired, and old arrangements migrate safely',()=>{
  const s=freshState();s.puzzles.sprout=moveFree(s.puzzles.sprout,'s-kite',{x:.42,y:.64});
  assert.deepEqual(restoreState(JSON.stringify(s)),s);
  const legacy={...structuredClone(s),version:1,solved:['sprout','walk','lantern']};delete legacy.puzzles.sprout.world;
- const migrated=restoreState(JSON.stringify(legacy));assert.deepEqual(migrated.solved,['walk','lantern']);assert.equal(migrated.version,2);
+ const migrated=restoreState(JSON.stringify(legacy));assert.deepEqual(migrated.solved,[]);assert.equal(migrated.version,3);
  assert.ok(migrated.puzzles.sprout.world['s-kite']);
+ const previous={...structuredClone(s),version:2,solved:['sprout','walk','lantern']};
+ const renewed=restoreState(JSON.stringify(previous));assert.deepEqual(renewed.solved,['sprout']);assert.deepEqual(renewed.puzzles,previous.puzzles);
  s.puzzles.sprout.world['s-kite']={x:null,y:'invalid'};
  assert.ok(Number.isFinite(restoreState(JSON.stringify(s)).puzzles.sprout.world['s-kite'].x));
  const untouched=newPuzzle(LEVELS[0]);assert.equal(moveFree(untouched,'fake',{x:1,y:1}),untouched);

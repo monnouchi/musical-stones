@@ -1,7 +1,8 @@
-import { LEVELS } from './music.js?v=0.3.0';
-import { solution, shuffled, place, moveFree, evaluate, readState, saveState } from './game.js?v=0.3.0';
-import { geometry, dropTarget, applyDrop, gemPoint, magnetPoint, clampPoint } from './interaction.js?v=0.3.0';
-import { SoundPlayer } from './audio.js?v=0.3.0';
+import { LEVELS } from './music.js?v=0.4.0-local';
+import { solution, shuffled, place, moveFree, evaluate, readState, saveState } from './game.js?v=0.4.0-local';
+import { geometry, dropTarget, applyDrop, gemPoint, magnetPoint, clampPoint } from './interaction.js?v=0.4.0-local';
+import { SoundPlayer } from './audio.js?v=0.4.0-local';
+import { MagicEffects } from './effects.js?v=0.4.0-local';
 
 const $ = id => document.getElementById(id);
 let storage;
@@ -20,12 +21,13 @@ const boardGeometry = () => {
   const gem=gems.values().next().value;
   return geometry($('gem-stage').clientWidth,$('gem-stage').clientHeight,puzzle().slots.length,gem?.clientWidth,gem?.clientHeight);
 };
+const effects = new MagicEffects($('gem-stage'));
 const player = new SoundPlayer({ onUpdate: updatePlayback });
 player.setVolume(state.volume, state.muted);
 
 function gemArt(id) {
   const color = colors[puzzle().tray.indexOf(id)];
-  return `<svg class="gem-face" viewBox="0 0 60 68" aria-hidden="true"><path fill="${color}" d="M18 3H42L58 26L45 63H15L2 26Z"/><path fill="#ffffff" opacity=".30" d="M18 3L30 24L2 26Z"/><path fill="#ffffff" opacity=".16" d="M18 3H42L30 24Z"/><path fill="#ffffff" opacity=".09" d="M30 24L58 26L45 63Z"/><path fill="#1c3d39" opacity=".22" d="M2 26L30 24L15 63Z"/><path fill="#ffffff" opacity=".19" d="M30 24L45 63H15Z"/><path fill="none" stroke="#ffffff" stroke-opacity=".32" stroke-width=".7" d="M18 3L30 24L42 3M2 26L30 24L58 26M15 63L30 24L45 63"/></svg><span class="gem-name">${name(id)}</span>`;
+  return `<svg class="gem-face" viewBox="0 0 60 68" aria-hidden="true"><path fill="${color}" d="M18 3H42L58 26L45 63H15L2 26Z"/><path class="gem-facet" fill="#ffffff" opacity=".30" d="M18 3L30 24L2 26Z"/><path class="gem-facet" fill="#ffffff" opacity=".16" d="M18 3H42L30 24Z"/><path fill="#ffffff" opacity=".09" d="M30 24L58 26L45 63Z"/><path fill="#1c3d39" opacity=".22" d="M2 26L30 24L15 63Z"/><path fill="#ffffff" opacity=".19" d="M30 24L45 63H15Z"/><path fill="none" stroke="#ffffff" stroke-opacity=".32" stroke-width=".7" d="M18 3L30 24L42 3M2 26L30 24L58 26M15 63L30 24L45 63"/></svg><span class="gem-name">${name(id)}</span>`;
 }
 function persist() {
   if (!saveState(storage, state)) $('playback-state').textContent = '保存できない環境です。この画面では遊べます。';
@@ -51,6 +53,7 @@ function updatePlayback(info) {
   gems.forEach((el, id) => el.classList.toggle('is-playing', info.playing && id === info.id));
   if (info.playing && info.immersive) {
     if (!$('listening-room').open) {
+      effects.clear();
       $('room-title').textContent = level().title;
       $('room-gems').innerHTML = puzzle().slots.map(id => `<div class="room-gem" style="--gem-color:${colors[puzzle().tray.indexOf(id)]}">${gemArt(id)}</div>`).join('');
       document.body.classList.add('is-listening');
@@ -62,7 +65,7 @@ function updatePlayback(info) {
   } else closeRoom();
 }
 function status(message) { $('gesture-status').textContent = message; }
-function commit(next, message) {
+function commit(next, message, landing=null) {
   cancelDrag();
   player.stop();
   state.puzzles[level().id] = next;
@@ -70,9 +73,10 @@ function commit(next, message) {
   feedback = ''; feedbackKind = '';
   persist(); render();
   if (message) status(message);
+  if (landing) effects.land(gems.get(landing.id),landing.socket);
 }
 function changeLevel(index) {
-  cancelDrag(); player.stop(); state.levelIndex = index;
+  cancelDrag(); effects.clear(); player.stop(); state.levelIndex = index;
   active = null; awakened = false; feedback = ''; feedbackKind = '';
   persist(); render(); status('自由に動かして、くぼみの近くへ。');
 }
@@ -156,6 +160,7 @@ function render() {
       el.innerHTML = gemArt(id);
       el.addEventListener('click', event => {
         if (event.detail && performance.now() < suppressClickUntil) return;
+        if(!event.detail)effects.touch(el);
         audition(id);
       });
       el.addEventListener('pointerdown', event => pointerDown(event, id));
@@ -177,6 +182,7 @@ function render() {
 function pointerDown(event,id) {
   if(event.button!==0||drag)return;
   suppressClickUntil=0;
+  effects.touch(event.currentTarget);
   const rect=event.currentTarget.getBoundingClientRect();
   drag={id,pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,grabX:event.clientX-(rect.left+rect.width/2),grabY:event.clientY-(rect.top+rect.height/2),base:puzzle(),el:event.currentTarget,isDragging:false,target:{kind:'cancel'},width:$('gem-stage').clientWidth,height:$('gem-stage').clientHeight,viewportWidth:innerWidth,viewportHeight:innerHeight};
   event.currentTarget.setPointerCapture(event.pointerId);
@@ -210,6 +216,7 @@ function endDrag(restore=true) {
   return ended;
 }
 function cancelDrag() {
+  effects.clear();
   const ended=endDrag();
   if(ended?.isDragging){suppressClickUntil=performance.now()+250;status('移動を取り消しました。');}
 }
@@ -220,13 +227,10 @@ function pointerUp(event) {
   if(!ended.isDragging)return;
   suppressClickUntil=performance.now()+250;
   const next=applyDrop(ended.base,ended.id,target,g);
-  commit(next,target.kind==='socket' ? `${name(ended.id)} が ${target.index+1} 番目にはまりました。` : `${name(ended.id)} をここに置きました。`);
-  if(target.kind==='socket'&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
-    ended.el.classList.add('just-snapped');setTimeout(()=>ended.el.classList.remove('just-snapped'),450);
-  }
+  commit(next,target.kind==='socket' ? `${name(ended.id)} が ${target.index+1} 番目にはまりました。` : `${name(ended.id)} をここに置きました。`,{id:ended.id,socket:target.kind==='socket'});
 }
 function put(index) {
-  if (active) commit(place(puzzle(), active, index), `${name(active)} を ${index + 1} 番目へ。`);
+  if (active) commit(place(puzzle(), active, index), `${name(active)} を ${index + 1} 番目へ。`,{id:active,socket:true});
 }
 function moveActive(delta) {
   const index=puzzle().slots.indexOf(active);
@@ -236,11 +240,11 @@ function moveActive(delta) {
 function nudge(dx,dy) {
   if(!active)return;
   const g=boardGeometry(),point=gemPoint(puzzle(),active,g),next=clampPoint(point.x+dx,point.y+dy,g);
-  commit(moveFree(puzzle(),active,{x:next.x/g.width,y:next.y/g.height}),`${name(active)} を自由に移動。数字で台座へ。`);
+  commit(moveFree(puzzle(),active,{x:next.x/g.width,y:next.y/g.height}),`${name(active)} を自由に移動。数字で台座へ。`,{id:active,socket:false});
 }
 function returnActive() {
   const index=puzzle().slots.indexOf(active);
-  if(index>=0){const g=boardGeometry(),point=clampPoint(g.x(index),g.socketY+64,g);commit(moveFree(puzzle(),active,{x:point.x/g.width,y:point.y/g.height}),`${name(active)} を台座から外しました。`);}
+  if(index>=0){const g=boardGeometry(),point=clampPoint(g.x(index),g.socketY+64,g);commit(moveFree(puzzle(),active,{x:point.x/g.width,y:point.y/g.height}),`${name(active)} を台座から外しました。`,{id:active,socket:false});}
 }
 function gemKey(event,id) {
   if(event.ctrlKey||event.metaKey||event.altKey)return;
@@ -255,11 +259,12 @@ function gemKey(event,id) {
   }
 }
 function playOrder() {
+  effects.clear();
   const ids = puzzle().slots.filter(Boolean), complete = awakened && evaluate(level(), puzzle().slots) === 'correct';
   if (ids.length) player.play(level(), ids, { rich: complete, immersive: complete, label: complete ? '完成した曲を再生中' : '置いた宝石を左から再生中' });
 }
 function check() {
-  player.stop();
+  effects.clear();player.stop();
   if (evaluate(level(), puzzle().slots) === 'correct') {
     awakened = true;
     if (!state.solved.includes(level().id)) state.solved.push(level().id);
@@ -270,17 +275,17 @@ function check() {
     feedback = `もう少し。${level().hint}`; feedbackKind = 'retry'; render();
   }
 }
-$('reference').addEventListener('click', () => player.play(level(), solution(level()), {rich:level().instrument==='musicbox',label:'お手本を再生中',revealFragments:false}));
+$('reference').addEventListener('click', () => {effects.clear();player.play(level(), solution(level()), {rich:level().instrument==='musicbox',label:'お手本を再生中',revealFragments:false});});
 $('place-active').addEventListener('click',()=>{if(!active)return;const g=boardGeometry(),point=gemPoint(puzzle(),active,g);const empty=puzzle().slots.map((id,i)=>id?null:i).filter(i=>i!==null).sort((a,b)=>Math.abs(g.x(a)-point.x)-Math.abs(g.x(b)-point.x));if(empty.length)put(empty[0]);});
 $('move-left').addEventListener('click', () => moveActive(-1));
 $('move-right').addEventListener('click', () => moveActive(1));
 $('return-active').addEventListener('click', returnActive);
 $('gem-stage').addEventListener('pointerdown',()=>{suppressClickUntil=0;},{capture:true});
-$('gem-stage').addEventListener('click',event=>{if(!active||event.target.closest('.gem')||performance.now()<suppressClickUntil)return;const stage=$('gem-stage'),rect=stage.getBoundingClientRect(),g=boardGeometry(),target=dropTarget(event.clientX-rect.left-stage.clientLeft,event.clientY-rect.top-stage.clientTop,g);commit(applyDrop(puzzle(),active,target,g),target.kind==='socket'?`${name(active)} を ${target.index+1} 番目へ。`:`${name(active)} をここに置きました。`);});
+$('gem-stage').addEventListener('click',event=>{if(!active||event.target.closest('.gem')||performance.now()<suppressClickUntil)return;const stage=$('gem-stage'),rect=stage.getBoundingClientRect(),g=boardGeometry(),target=dropTarget(event.clientX-rect.left-stage.clientLeft,event.clientY-rect.top-stage.clientTop,g);commit(applyDrop(puzzle(),active,target,g),target.kind==='socket'?`${name(active)} を ${target.index+1} 番目へ。`:`${name(active)} をここに置きました。`,{id:active,socket:target.kind==='socket'});});
 $('play-order').addEventListener('click', playOrder);
 $('check').addEventListener('click', check);
-for (const id of ['stop', 'room-stop']) $(id).addEventListener('click', () => player.stop());
-$('listening-room').addEventListener('cancel', event => { event.preventDefault(); player.stop(); });
+for (const id of ['stop', 'room-stop']) $(id).addEventListener('click', () => {effects.clear();player.stop();});
+$('listening-room').addEventListener('cancel', event => { event.preventDefault(); effects.clear();player.stop(); });
 $('shuffle').addEventListener('click', () => { cancelDrag(); commit({ ...puzzle(), slots: shuffled(solution(level())) }); });
 $('clear').addEventListener('click',()=>{cancelDrag();const g=boardGeometry();let next=puzzle();next.slots.forEach((id,i)=>{if(id){const point=clampPoint(g.x(i),g.socketY+64,g);next=moveFree(next,id,{x:point.x/g.width,y:point.y/g.height});}});commit(next,'すべての宝石を台座から外しました。');});
 $('next').addEventListener('click', () => changeLevel(Math.min(LEVELS.length - 1, state.levelIndex + 1)));
@@ -296,13 +301,14 @@ for (const id of ['volume', 'room-volume']) $(id).addEventListener('input', even
 });
 document.addEventListener('keydown', event => {
   if (event.ctrlKey || event.metaKey || event.altKey || event.repeat || /INPUT|TEXTAREA|SELECT/.test(event.target.tagName) || event.target.isContentEditable) return;
-  if (event.key === 'Escape') { event.preventDefault(); if (drag) cancelDrag(); else player.stop(); }
+  if (event.key === 'Escape') { event.preventDefault(); if (drag) cancelDrag(); else {effects.clear();player.stop();} }
   else if (active && /^[1-4]$/.test(event.key) && Number(event.key) <= puzzle().slots.length) { event.preventDefault(); put(Number(event.key) - 1); }
   else if (event.key.toLowerCase() === 'p') { event.preventDefault(); playOrder(); }
-  else if (event.key.toLowerCase() === 's') { event.preventDefault(); player.stop(); }
+  else if (event.key.toLowerCase() === 's') { event.preventDefault(); effects.clear();player.stop(); }
   else if (event.key.toLowerCase() === 'm') { event.preventDefault(); toggleMute(); }
 });
 document.addEventListener('visibilitychange', () => { if (document.hidden) { cancelDrag(); player.background(); persist(); } });
 window.addEventListener('pagehide', () => { cancelDrag(); player.background(); persist(); });
-new ResizeObserver(()=>{if(drag)cancelDrag();layout();}).observe($('gem-stage'));
+window.addEventListener('resize',()=>{effects.clear();if(drag)cancelDrag();layout();});
+new ResizeObserver(()=>{effects.clear();if(drag)cancelDrag();layout();}).observe($('gem-stage'));
 render();
