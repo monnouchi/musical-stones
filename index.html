@@ -7,8 +7,8 @@
   <meta name="description" content="遺跡で見つけた音の宝石を聴いて、つなぎ、眠っていた小さな曲をよみがえらせる音楽パズル。">
   <title>おとのつづき — 音楽パズル試作</title>
   <link rel="icon" href="./assets/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./style.css?v=0.4.0">
-  <script type="module" src="./src/app.js?v=0.4.0"></script>
+  <link rel="stylesheet" href="./style.css?v=0.4.1">
+  <script type="module" src="./src/app.js?v=0.4.1"></script>
 </head>
 <body>
   <svg class="ambient-staff" viewBox="0 0 1000 300" preserveAspectRatio="none" aria-hidden="true"><g><path d="M-40 100 Q210 55 480 110 T1040 90"/><path d="M-40 120 Q210 75 480 130 T1040 110"/><path d="M-40 140 Q210 95 480 150 T1040 130"/><path d="M-40 160 Q210 115 480 170 T1040 150"/><path d="M-40 180 Q210 135 480 190 T1040 170"/></g></svg>
@@ -44,7 +44,7 @@
         <div id="feedback" class="feedback" role="status"></div>
         <button id="next" class="next-button" type="button" hidden>次の音を探す →</button>
       </section>
-      <details class="help"><summary>宝石の動かし方・曲のヒント</summary><p id="level-description"></p><p>宝石に触れると、その音が鳴ります。ドラッグして石のくぼみへ。近づけたときだけ吸着します。配置済みの宝石同士は入れ替わり、くぼみから離すと外れます。台座から引き離しても、自由な場所に置けます。盤面の端では安全に止まり、Escで取り消せます。曲線の光はどの並びでもつながり、正解のヒントにはなりません。</p><p>ドラッグが難しいときは、宝石を聴く→「はめる」で空いているくぼみへ。台座上では左右ボタンで交換、自由な位置では左右へ移動、「外す」で外せます。Tab で宝石へ移動、Enter / Space で試聴、数字 1〜4 で配置、矢印キーで自由移動、Shift＋左右で台座の交換、Deleteで外します。選んだあと盤面をタップしても動かせます。空のくぼみは飛ばして再生します。P は並びの再生、S / Esc は停止、M はミュート。</p><p>拡大文字ではスクロールして操作できます。画面を離れると停止し、戻っても自動再生しません。配置・達成・音量は、このブラウザーに保存します。</p><button id="shuffle" class="quiet-button" type="button">↝ 並びをシャッフル</button><button id="clear" class="quiet-button" type="button">すべて外す</button></details>
+      <details class="help"><summary>宝石の動かし方・曲のヒント</summary><p id="level-description"></p><p>宝石に触れると、その音が鳴ります。ドラッグして石のくぼみへ。近づけたときだけ吸着します。配置済みの宝石同士は入れ替わり、くぼみから離すと外れます。台座から引き離しても、自由な場所に置けます。盤面の端では安全に止まり、Escで取り消せます。曲線の光はどの並びでもつながり、正解のヒントにはなりません。</p><p>ドラッグが難しいときは、宝石を聴く→「はめる」で空いているくぼみへ。台座上では左右ボタンで交換、自由な位置では左右へ移動、「外す」で外せます。Tab で宝石へ移動、Enter / Space で試聴、数字 1〜4 で配置、矢印キーで自由移動、Shift＋左右で台座の交換、Deleteで外します。選んだあと盤面をタップしても動かせます。空のくぼみは飛ばして再生します。P は並びの再生、S / Esc は停止、M はミュート。</p><p>拡大文字ではスクロールして操作できます。画面を離れると停止し、戻っても自動再生しません。起動・再読み込みは台座を空にしてシャッフルし、最初から遊べます。プレイ中の配置は曲を切り替えても保持し、音量と消音は次回も使えます。</p><button id="shuffle" class="quiet-button" type="button">↝ シャッフルしてやり直す</button><button id="clear" class="quiet-button" type="button">すべて外す</button></details>
     </main>
     <footer>Happaとつくるサンプルゲーム · 3つの独自曲 · 仮タイトル</footer>
   </div>

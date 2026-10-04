@@ -17,7 +17,7 @@ async(page)=>{
   };
   await phone.locator('[data-gem="l-moss"]').tap();await phone.waitForFunction(()=>!document.getElementById('stop').disabled);assert(await phone.locator('.gem.is-playing').count()===1,'one touch preview');await phone.locator('#stop').tap();
   await move('l-moss',await point(.48,.60));assert(!(await saved()).slots.includes('l-moss'),'touch freely placed');assert(Math.abs((await saved()).world['l-moss'].x-.48)<.01,'touch point held');assert(await phone.locator('#stop').isDisabled(),'drop no replay');
-  const free=JSON.stringify((await saved()).world['l-moss']);await phone.reload();assert(JSON.stringify((await saved()).world['l-moss'])===free,'touch free restore');
+  const free=JSON.stringify((await saved()).world['l-moss']);await phone.reload();assert((await saved()).slots.every(id=>id===null)&&JSON.stringify((await saved()).world['l-moss'])!==free,'touch reload starts fresh');
   await move('l-moss',await point(.125,.29));assert((await saved()).slots[0]==='l-moss','touch snap');
   await move('l-moss',await point(.70,.58));assert(!(await saved()).slots.includes('l-moss'),'touch detach');
   await move('l-moss',{x:2,y:(await point(.7,.60)).y});assert(!(await saved()).slots.includes('l-moss'),'off board becomes free');

@@ -25,7 +25,12 @@ test('neutral A/B labels are randomized without an always-reversed two-piece ans
   const level = LEVELS[0];
   assert.deepEqual(newPuzzle(level, () => 0).tray, [...solution(level)].reverse());
   assert.deepEqual(newPuzzle(level, () => .999).tray, solution(level));
-  assert.ok(newPuzzle(level).slots.every(id => id === null));
+  for(const candidate of LEVELS)for(const random of [()=>0,()=>.999,Math.random]){
+    const p=newPuzzle(candidate,random);
+    const order=[...p.tray].sort((a,b)=>p.world[a].x-p.world[b].x);
+    assert.notDeepEqual(order,solution(candidate));assert.ok(p.slots.every(id=>id===null));
+    assert.equal(new Set(Object.values(p.world).map(point=>point.x)).size,p.tray.length);
+  }
 });
 test('tap placement swaps placed fragments, evicts unplaced replacements, and removes without duplication', () => {
   const level = LEVELS[2]; const [a,b,c,d] = solution(level);
@@ -44,30 +49,28 @@ test('tap placement swaps placed fragments, evicts unplaced replacements, and re
   assert.equal(place(puzzle,a,99),puzzle);
   assert.equal(place(puzzle,a,NaN),puzzle);
 });
-test('saved valid game restores exact labels, slots, settings and progress', () => {
-  const state = freshState(); state.levelIndex = 2; state.volume = .27; state.muted = true;
-  state.solved = ['sprout']; state.puzzles.walk.slots = solution(LEVELS[1]);
-  const restored = restoreState(JSON.stringify(state));
-  assert.deepEqual(restored,state);
-  assert.notEqual(restored.puzzles.walk.slots,state.puzzles.walk.slots);
+test('every startup ignores old positions and achievements but retains unrelated settings',()=>{
+ for(const version of [1,2,3,4])for(const completed of [false,true]){
+  const old=freshState();old.version=version;old.levelIndex=2;old.volume=.27;old.muted=true;old.solved=['sprout','walk','lantern'];
+  for(const level of LEVELS){old.puzzles[level.id].tray=solution(level);old.puzzles[level.id].slots=completed?solution(level):[solution(level)[0],...Array(level.fragments.length-1).fill(null)];for(const id of solution(level))old.puzzles[level.id].world[id]={x:.01,y:.01};}
+  const restored=restoreState(JSON.stringify(old));
+  assert.equal(restored.levelIndex,2);assert.equal(restored.volume,.27);assert.equal(restored.muted,true);assert.deepEqual(restored.solved,[]);assert.equal(restored.version,4);
+  for(const level of LEVELS){const p=restored.puzzles[level.id];assert.ok(p.slots.every(id=>id===null));assert.ok(Object.values(p.world).every(point=>point.y===.77));assert.notDeepEqual([...p.tray].sort((a,b)=>p.world[a].x-p.world[b].x),solution(level));}
+ }
 });
-test('corrupt or out-of-date storage falls back; duplicates and foreign fragments do not restore', () => {
-  for (const raw of ['broken', 'null', '{}', '{"version":99}', undefined]) assert.equal(restoreState(raw).version,3);
-  const saved = freshState(); saved.levelIndex = 99; saved.volume = 9; saved.solved = ['unknown','sprout','sprout'];
-  saved.puzzles.walk.slots = [solution(LEVELS[1])[0],solution(LEVELS[1])[0],null];
-  saved.puzzles.lantern.tray = ['fake','x','y','z'];
-  const state = restoreState(JSON.stringify(saved));
-  assert.equal(state.levelIndex,0); assert.equal(state.volume,1); assert.deepEqual(state.solved,['sprout']);
-  assert.ok(state.puzzles.walk.slots.every(id => id === null));
-  assert.ok(state.puzzles.lantern.tray.every(id => solution(LEVELS[2]).includes(id)));
+test('corrupt puzzle snapshots cannot override a fresh start; bad settings are repaired',()=>{
+ for(const raw of ['broken','null','{}','{"version":99}',undefined])assert.equal(restoreState(raw).version,4);
+ const old=freshState();old.levelIndex=99;old.volume=9;old.muted=true;old.solved=['sprout'];old.puzzles.walk={tray:['fake'],slots:['fake'],world:null};
+ const restored=restoreState(JSON.stringify(old));assert.equal(restored.levelIndex,0);assert.equal(restored.volume,1);assert.equal(restored.muted,true);assert.deepEqual(restored.solved,[]);
+ assert.ok(restored.puzzles.walk.slots.every(id=>id===null));assert.ok(restored.puzzles.walk.tray.every(id=>solution(LEVELS[1]).includes(id)));
 });
 test('storage security/quota failure does not prevent playing', () => {
   const blocked = { getItem() { throw new Error('blocked'); }, setItem() { throw new Error('quota'); } };
-  assert.equal(readState(blocked).version,3); assert.equal(saveState(blocked,freshState()),false);
-  assert.equal(readState(null).version,3);
+  assert.equal(readState(blocked).version,4); assert.equal(saveState(blocked,freshState()),false);
+  assert.equal(readState(null).version,4);
   let stored;
   assert.equal(saveState({setItem(k,v) { stored = [k,v]; }},freshState()),true);
-  assert.equal(stored[0],STORAGE_KEY); assert.equal(JSON.parse(stored[1]).version,3);
+  assert.equal(stored[0],STORAGE_KEY); assert.equal(JSON.parse(stored[1]).version,4);
 });
 test('original scores have valid bounded notes, rich arrangement retains melody and no ambiguous exact duplicates', () => {
   const globalIds = LEVELS.flatMap(l => solution(l)); assert.equal(new Set(globalIds).size,globalIds.length);

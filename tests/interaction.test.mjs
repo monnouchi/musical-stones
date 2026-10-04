@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { geometry, dropTarget, applyDrop, magnetPoint, gemPoint, clampPoint } from '../src/interaction.js';
-import { newPuzzle, moveFree, place, restoreState, freshState } from '../src/game.js';
+import { newPuzzle, moveFree, place } from '../src/game.js';
 import { LEVELS } from '../src/music.js';
 
 const p={tray:['a','b','c','d'],slots:['b',null,'a','d'],world:{a:{x:.2,y:.8},b:{x:.4,y:.7},c:{x:.7,y:.6},d:{x:.9,y:.8}}};
@@ -50,16 +50,16 @@ test('resize clamps every free gem inside the current board without changing sto
  }
  assert.deepEqual(next.world.a,{x:.999,y:.001});assert.deepEqual(clampPoint(-4,999,geometry(276,210,4)),{x:37,y:165});
 });
-test('world state restores, malformed coordinates are repaired, and old arrangements migrate safely',()=>{
- const s=freshState();s.puzzles.sprout=moveFree(s.puzzles.sprout,'s-kite',{x:.42,y:.64});
- assert.deepEqual(restoreState(JSON.stringify(s)),s);
- const legacy={...structuredClone(s),version:1,solved:['sprout','walk','lantern']};delete legacy.puzzles.sprout.world;
- const migrated=restoreState(JSON.stringify(legacy));assert.deepEqual(migrated.solved,[]);assert.equal(migrated.version,3);
- assert.ok(migrated.puzzles.sprout.world['s-kite']);
- const previous={...structuredClone(s),version:2,solved:['sprout','walk','lantern']};
- const renewed=restoreState(JSON.stringify(previous));assert.deepEqual(renewed.solved,['sprout']);assert.deepEqual(renewed.puzzles,previous.puzzles);
- s.puzzles.sprout.world['s-kite']={x:null,y:'invalid'};
- assert.ok(Number.isFinite(restoreState(JSON.stringify(s)).puzzles.sprout.world['s-kite'].x));
- const untouched=newPuzzle(LEVELS[0]);assert.equal(moveFree(untouched,'fake',{x:1,y:1}),untouched);
- assert.equal(moveFree(untouched,'s-kite',{x:NaN,y:.5}),untouched);
+test('initial and restart positions fit without overlap and restarting preserves session labels',()=>{
+ for(const level of LEVELS){
+  const p=newPuzzle(level);const moved=place(moveFree(p,p.tray[0],{x:.48,y:.60}),p.tray[1],0);
+  const reset=newPuzzle(level,Math.random,moved.tray);assert.deepEqual(reset.tray,moved.tray);assert.notEqual(reset.tray,moved.tray);assert.ok(reset.slots.every(id=>id===null));
+  for(const [width,height,gemWidth,gemHeight] of [[276,210,64,78],[340,244,64,78],[850,276,78,92]]){
+   const g=geometry(width,height,level.fragments.length,gemWidth,gemHeight),points=reset.tray.map(id=>gemPoint(reset,id,g));
+   for(const point of points){assert.ok(point.x-gemWidth/2>=0&&point.x+gemWidth/2<=width);assert.ok(point.y-gemHeight/2>g.socketY+gemHeight/2&&point.y+gemHeight/2<=height);}
+   for(let i=0;i<points.length;i++)for(let j=i+1;j<points.length;j++)assert.ok(Math.abs(points[i].x-points[j].x)>=gemWidth);
+  }
+  assert.ok(moved.slots.some(Boolean));assert.deepEqual(moved.world[p.tray[0]],{x:.48,y:.60});
+ }
+ const p=newPuzzle(LEVELS[0]);assert.equal(moveFree(p,'fake',{x:1,y:1}),p);assert.equal(moveFree(p,'s-kite',{x:NaN,y:.5}),p);
 });

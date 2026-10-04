@@ -19,7 +19,7 @@ async(page)=>{
  await page.locator('#return-active').click();assert(!(await puzzle()).slots.includes('s-kite'),'tap detach');
  await nav(2);await drag('l-moss',await point(.46,.61));
  let p=await puzzle();assert(!p.slots.includes('l-moss'),'free drop not ordered');assert(Math.abs(p.world['l-moss'].x-.46)<.01&&Math.abs(p.world['l-moss'].y-.61)<.01,'exact release persisted');
- const freeBefore=JSON.stringify(p.world['l-moss']);await page.reload();p=await puzzle();assert(JSON.stringify(p.world['l-moss'])===freeBefore,'world restore');assert(await page.locator('#stop').isDisabled(),'reload silent');
+ const freeBefore=JSON.stringify(p.world['l-moss']);await page.reload();p=await puzzle();assert(p.slots.every(id=>id===null)&&JSON.stringify(p.world['l-moss'])!==freeBefore,'reload starts outside wells');assert(await page.locator('#stop').isDisabled(),'reload silent');
  // Near a well: physical stone stays attached to its DOM, is gently pulled, and commits once.
  await select('l-moss');const e=page.locator('[data-gem="l-moss"]'),handle=await e.elementHandle(),bb=await e.boundingBox(),s=await socket(0),g=await board();
  const near={x:s.x+Math.min(38,g.w/4*.44)*.8,y:s.y};const before=JSON.stringify(await puzzle());

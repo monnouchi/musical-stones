@@ -1,8 +1,8 @@
-import { LEVELS } from './music.js?v=0.4.0';
-import { solution, shuffled, place, moveFree, evaluate, readState, saveState } from './game.js?v=0.4.0';
-import { geometry, dropTarget, applyDrop, gemPoint, magnetPoint, clampPoint } from './interaction.js?v=0.4.0';
-import { SoundPlayer } from './audio.js?v=0.4.0';
-import { MagicEffects } from './effects.js?v=0.4.0';
+import { LEVELS } from './music.js?v=0.4.1';
+import { solution, newPuzzle, place, moveFree, evaluate, readState, saveState } from './game.js?v=0.4.1';
+import { geometry, dropTarget, applyDrop, gemPoint, magnetPoint, clampPoint } from './interaction.js?v=0.4.1';
+import { SoundPlayer } from './audio.js?v=0.4.1';
+import { MagicEffects } from './effects.js?v=0.4.1';
 
 const $ = id => document.getElementById(id);
 let storage;
@@ -286,7 +286,7 @@ $('play-order').addEventListener('click', playOrder);
 $('check').addEventListener('click', check);
 for (const id of ['stop', 'room-stop']) $(id).addEventListener('click', () => {effects.clear();player.stop();});
 $('listening-room').addEventListener('cancel', event => { event.preventDefault(); effects.clear();player.stop(); });
-$('shuffle').addEventListener('click', () => { cancelDrag(); commit({ ...puzzle(), slots: shuffled(solution(level())) }); });
+$('shuffle').addEventListener('click', () => { active=null;state.solved=state.solved.filter(id=>id!==level().id);commit(newPuzzle(level(),Math.random,puzzle().tray),'台座を空にしてシャッフルしました。'); });
 $('clear').addEventListener('click',()=>{cancelDrag();const g=boardGeometry();let next=puzzle();next.slots.forEach((id,i)=>{if(id){const point=clampPoint(g.x(i),g.socketY+64,g);next=moveFree(next,id,{x:point.x/g.width,y:point.y/g.height});}});commit(next,'すべての宝石を台座から外しました。');});
 $('next').addEventListener('click', () => changeLevel(Math.min(LEVELS.length - 1, state.levelIndex + 1)));
 function toggleMute() {
@@ -312,3 +312,4 @@ window.addEventListener('pagehide', () => { cancelDrag(); player.background(); p
 window.addEventListener('resize',()=>{effects.clear();if(drag)cancelDrag();layout();});
 new ResizeObserver(()=>{effects.clear();if(drag)cancelDrag();layout();}).observe($('gem-stage'));
 render();
+persist(); // Replace legacy placement snapshots with this fresh session once.

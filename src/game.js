@@ -1,4 +1,4 @@
-import { LEVELS } from './music.js?v=0.4.0';
+import { LEVELS } from './music.js?v=0.4.1';
 
 export const STORAGE_KEY = 'demo5.sound-stitch.v1';
 export const solution = level => level.fragments.map(f => f.id);
@@ -12,9 +12,12 @@ export function shuffled(ids, random = Math.random, avoidSolution = true) {
   if (avoidSolution && result.every((id, i) => id === ids[i]) && result.length > 1) result.push(result.shift());
   return result;
 }
-export function newPuzzle(level, random = Math.random) {
-  const tray = shuffled(solution(level), random, false);
-  return { tray, slots: Array(tray.length).fill(null), world: Object.fromEntries(tray.map((id,i) => [id,{x:(i+.5)/tray.length,y:.77}])) };
+export function newPuzzle(level, random = Math.random, existingTray = null) {
+  // Labels and physical order are independent: avoiding an ordered start must
+  // not make the two-piece answer always B-A.
+  const tray = existingTray ? [...existingTray] : shuffled(solution(level), random, false);
+  const order = shuffled(solution(level), random);
+  return { tray, slots: Array(tray.length).fill(null), world: Object.fromEntries(order.map((id,i) => [id,{x:(i+.5)/tray.length,y:.77}])) };
 }
 export const homePosition = (puzzle, id) => ({x:(puzzle.tray.indexOf(id)+.5)/puzzle.tray.length,y:.77});
 export const worldPosition = (puzzle, id) => puzzle.world?.[id] ?? homePosition(puzzle,id);
@@ -42,32 +45,18 @@ export function evaluate(level, slots) {
   return solution(level).every((id, i) => id === slots[i]) ? 'correct' : 'retry';
 }
 export function freshState() {
-  return { version: 3, levelIndex: 0, puzzles: Object.fromEntries(LEVELS.map(l => [l.id, newPuzzle(l)])), solved: [], volume: .65, muted: false };
+  return { version: 4, levelIndex: 0, puzzles: Object.fromEntries(LEVELS.map(l => [l.id, newPuzzle(l)])), solved: [], volume: .65, muted: false };
 }
 export function restoreState(raw) {
   const state = freshState();
   try {
     const saved = JSON.parse(raw);
-    if (!saved || ![1,2,3].includes(saved.version)) return state;
+    if (!saved || ![1,2,3,4].includes(saved.version)) return state;
     if (Number.isInteger(saved.levelIndex) && saved.levelIndex >= 0 && saved.levelIndex < LEVELS.length) state.levelIndex = saved.levelIndex;
     if (typeof saved.volume === 'number' && Number.isFinite(saved.volume)) state.volume = Math.max(0, Math.min(1, saved.volume));
     state.muted = saved.muted === true;
-    state.solved = LEVELS.filter(l => Array.isArray(saved.solved) && saved.solved.includes(l.id) && !(saved.version===1 && l.id==='sprout') && !(saved.version<3 && l.id!=='sprout')).map(l => l.id);
-    for (const level of LEVELS) {
-      const puzzle = saved.puzzles?.[level.id];
-      const valid = solution(level);
-      if (!puzzle || !Array.isArray(puzzle.tray) || !Array.isArray(puzzle.slots)) continue;
-      if (puzzle.tray.length !== valid.length || new Set(puzzle.tray).size !== valid.length || !puzzle.tray.every(id => valid.includes(id))) continue;
-      if (puzzle.slots.length !== valid.length || !puzzle.slots.every(id => id === null || valid.includes(id))) continue;
-      const placed = puzzle.slots.filter(Boolean);
-      if (new Set(placed).size !== placed.length) continue;
-      const restored = { tray: [...puzzle.tray], slots: [...puzzle.slots], world:{} };
-      for (const id of restored.tray) {
-        const point = puzzle.world?.[id];
-        restored.world[id] = point && Number.isFinite(point.x) && Number.isFinite(point.y) ? {x:Math.max(0,Math.min(1,point.x)),y:Math.max(0,Math.min(1,point.y))} : homePosition(restored,id);
-      }
-      state.puzzles[level.id] = restored;
-    }
+    // A new document is a new game. Never import saved slots, free positions,
+    // label order or achievements, even from a completed legacy game.
   } catch { /* inaccessible/corrupt storage starts a playable fresh game */ }
   return state;
 }

@@ -2,7 +2,7 @@
 
 遺跡で見つけた音の宝石を聴き、動かし、短い独自曲をよみがえらせる音楽パズル。3曲・3段階、楽譜の知識は不要です。静的HTML/CSS/JavaScriptとWebAudioで、GitHub Pagesの`/demo5/`配下に対応します。
 
-**現在の版は v0.4.0。** [GitHub Pagesで遊ぶ](https://monnouchi.github.io/demo5/?v=0.4.0)／[3曲を聴き比べる](https://monnouchi.github.io/demo5/review/?v=0.4.0)。2・3曲目の音楽、曲名、短い操作の光を更新し、1曲目の音楽と3段階・自由配置を維持しています。
+**現在の版は v0.4.1。** [GitHub Pagesで遊ぶ](https://monnouchi.github.io/demo5/?v=0.4.0)／[3曲を聴き比べる](https://monnouchi.github.io/demo5/review/?v=0.4.0)。2・3曲目の音楽、曲名、短い操作の光を更新し、1曲目の音楽と3段階・自由配置を維持しています。
 
 ## 3曲を聴き比べる
 
@@ -42,7 +42,7 @@ Node.js 20以降、アプリの依存インストール不要。試聴は <http:
 
 触れた瞬間に宝石の面が光り、置くと小さな光粒が反応します。台座では波紋と接続光が流れます。正誤とは無関係、追加SEなし、reduced-motionでは静かな発光だけにします。
 
-自由位置と台座順序を分けて保存し、再読み込み・サイズ変更でも保持します。音量・ミュート・達成も保存。旧v0.3からは位置と1曲目の達成を保持し、作り直した2・3曲目の達成だけを解除します。画面を離れると停止し、戻っても自動再生しません。拡大文字とreduced-motionに対応します。
+起動・再読み込みでは、全曲の台座を空にし、宝石を台座外へシャッフルして最初から遊べます。古い保存配置・自由位置・達成は復元しません。音量・消音・選択中の曲は保持します。プレイ中の位置と台座順序は曲切替・リサイズでは変わりません。「シャッフルしてやり直す」は現在の曲だけを空の台座から再開し、音の文字・色は保ちます。「すべて外す」は配置だけを外します。画面を離れると停止し、戻っても自動再生しません。拡大文字とreduced-motionに対応します。
 
 正解はお手本の再構成。お手本は断片を発光させず、曲線の光は正誤に関係なく隣接宝石をつなぎます。色・A/B/C/Dは無作為な識別、全宝石が全台座に入ります。空の台座を飛ばして、配置済みの音だけを左から再生します。明示判定後は完成編曲と鑑賞画面が開き、停止・音量・ミュートを操作できます。
 
@@ -57,6 +57,7 @@ npm run check
 
 ```sh
 playwright-cli -s=demo5-free open http://127.0.0.1:4187/demo5/ --config=scripts/chrome-qa.config.json
+playwright-cli -s=demo5-free run-code --filename=scripts/startup-qa.js
 playwright-cli -s=demo5-free run-code --filename=scripts/browser-qa.js
 playwright-cli -s=demo5-free run-code --filename=scripts/mobile-qa.js
 playwright-cli -s=demo5-free run-code --filename=scripts/review-qa.js
