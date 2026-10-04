@@ -756,7 +756,7 @@ footer {
     font-size:.875rem;
   }
   .level-button {
-    font-size:.75rem;
+    font-size:.8125rem;
   }
   .gem-stage {
     min-height:max(210px,13.125rem);
@@ -779,23 +779,23 @@ footer {
     top:120px;
   }
   .gesture-status {
-    font-size:.6875rem;
+    font-size:.8125rem;
   }
   .edit-button {
     min-width:2.75rem;
     padding:.3rem .2rem;
   }
   .active-name {
-    font-size:.6875rem;
+    font-size:.8125rem;
   }
   .transport {
     grid-template-columns:1fr 1.1fr 2.75rem;
   }
   .primary-button,.secondary-button {
-    font-size:.75rem;
+    font-size:.875rem;
   }
   .feedback {
-    font-size:.6875rem;
+    font-size:.8125rem;
   }
 }
 @media(prefers-reduced-motion:reduce) {
@@ -836,3 +836,10 @@ footer {
 .sound-settings {
   max-width:100%;
 }
+@media(max-width:700px) {
+  .primary-button,.secondary-button {font-size:.875rem}
+  .gesture-status,.feedback {font-size:.8125rem}
+  .playback-line {font-size:.75rem}
+}
+.level-button {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem}
+.level-achievement {height:.65rem;font-size:.65rem;line-height:1}

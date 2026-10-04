@@ -60,6 +60,7 @@ function updatePlayback(info) {
 }
 function status(message) { $('gesture-status').textContent = message; }
 function commit(next, message) {
+  cancelDrag();
   player.stop();
   state.puzzles[level().id] = next;
   awakened = false;
@@ -70,11 +71,11 @@ function commit(next, message) {
 function changeLevel(index) {
   cancelDrag(); player.stop(); state.levelIndex = index;
   active = null; awakened = false; feedback = ''; feedbackKind = '';
-  persist(); render(); status('宝石を聴いて、くぼみへ。横に並ぶと光がつながります。');
+  persist(); render(); status('宝石を聴いて、くぼみへ動かそう。');
 }
 function audition(id) {
   active = id; controls();
-  status(`${name(id)} を選びました。ドラッグ、または「はめる」で台座へ。`);
+  status(`${name(id)}：ドラッグ、または「はめる」で台座へ。`);
   player.play(level(), [id], { label: `${name(id)} を再生中` });
 }
 function controls() {
@@ -125,7 +126,13 @@ function render() {
     return el;
   }));
   [...$('levels').children].forEach((el, i) => {
-    el.textContent = `${i + 1} ${LEVELS[i].title}${state.solved.includes(LEVELS[i].id) ? ' ✓' : ''}`;
+    const done = state.solved.includes(LEVELS[i].id);
+    const caption = document.createElement('span'); caption.className = 'level-caption';
+    caption.textContent = `${i + 1} ${LEVELS[i].title}`;
+    const achievement = document.createElement('span'); achievement.className = 'level-achievement';
+    achievement.textContent = done ? '✓' : ''; achievement.setAttribute('aria-hidden','true');
+    el.replaceChildren(caption, achievement);
+    el.setAttribute('aria-label', `${i + 1}曲目 ${LEVELS[i].title}${done ? ' 達成済み' : ''}`);
     el.setAttribute('aria-current', i === state.levelIndex ? 'step' : 'false');
   });
   $('level-kicker').textContent = `SONG ${state.levelIndex + 1} · ${current.fragments.length} GEMS`;
@@ -174,7 +181,7 @@ function pointerMove(event) {
     $('gem-stage').classList.add('is-dragging');
     $('drag-ghost').innerHTML = gemArt(drag.id);
     $('drag-ghost').hidden = false;
-    status(`${name(drag.id)} を移動中。くぼみで離して配置、台座の外で離すと元へ。`);
+    status(`${name(drag.id)} を移動中。くぼみで配置、外で取消。`);
   }
   event.preventDefault();
   const rect = $('gem-stage').getBoundingClientRect(), g = boardGeometry();

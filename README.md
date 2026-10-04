@@ -2,7 +2,7 @@
 
 GitHub Pages 向けの静的な音楽パズルです。遺跡で見つけた音の宝石を聴き、石のくぼみに並べて、小さなオリジナル曲をよみがえらせます。楽譜・音名・音楽理論の知識は不要です。Happaとつくるサンプルゲームとして、3つの曲を磨く試作です。
 
-現在のローカル版は v0.2。宝石の直接操作、曲・音色・完成演出を刷新しました。公開サイト <https://monnouchi.github.io/demo5/> は前版です。v0.2 の公開は集中レビュー後に判断します。
+v0.2 は宝石の直接操作、曲・音色・完成演出を刷新しました。公開URL: <https://monnouchi.github.io/demo5/>。重点レビューは [docs/REVIEW.md](docs/REVIEW.md) を参照してください。
 
 ## ローカルで遊ぶ
 
@@ -71,6 +71,7 @@ playwright-cli -s=demo5-polish open http://127.0.0.1:4187/demo5/ --config=script
 playwright-cli -s=demo5-polish run-code --filename=scripts/browser-qa.js
 playwright-cli -s=demo5-polish run-code --filename=scripts/mobile-qa.js
 playwright-cli -s=demo5-polish run-code --filename=scripts/audio-qa.js
+playwright-cli -s=demo5-polish run-code --filename=scripts/review-qa.js
 playwright-cli -s=demo5-polish close
 ```
 
