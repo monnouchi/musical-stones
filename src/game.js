@@ -1,4 +1,4 @@
-import { LEVELS } from './music.js?v=0.2.1';
+import { LEVELS } from './music.js?v=0.3.0-local';
 
 export const STORAGE_KEY = 'demo5.sound-stitch.v1';
 export const solution = level => level.fragments.map(f => f.id);
@@ -13,7 +13,14 @@ export function shuffled(ids, random = Math.random, avoidSolution = true) {
   return result;
 }
 export function newPuzzle(level, random = Math.random) {
-  return { tray: shuffled(solution(level), random, false), slots: Array(level.fragments.length).fill(null) };
+  const tray = shuffled(solution(level), random, false);
+  return { tray, slots: Array(tray.length).fill(null), world: Object.fromEntries(tray.map((id,i) => [id,{x:(i+.5)/tray.length,y:.77}])) };
+}
+export const homePosition = (puzzle, id) => ({x:(puzzle.tray.indexOf(id)+.5)/puzzle.tray.length,y:.77});
+export const worldPosition = (puzzle, id) => puzzle.world?.[id] ?? homePosition(puzzle,id);
+export function moveFree(puzzle, id, point) {
+  if (!puzzle.tray.includes(id) || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return puzzle;
+  return {...puzzle,slots:puzzle.slots.map(value => value===id ? null : value),world:{...puzzle.world,[id]:{x:Math.max(0,Math.min(1,point.x)),y:Math.max(0,Math.min(1,point.y))}}};
 }
 export function place(puzzle, id, index) {
   if (!puzzle.tray.includes(id) || !Number.isInteger(index) || index < 0 || index >= puzzle.slots.length) return puzzle;
@@ -21,8 +28,11 @@ export function place(puzzle, id, index) {
   const source = slots.indexOf(id);
   if (source === index) return puzzle;
   if (source >= 0) slots[source] = slots[index];
-  slots[index] = id; // an unplaced selection returns the old occupant to the tray
-  return { ...puzzle, slots };
+  const displaced = slots[index];
+  slots[index] = id;
+  // From free space, exchange the occupant into the dragged stone's old position.
+  const world = source < 0 && displaced ? {...puzzle.world,[displaced]:{...worldPosition(puzzle,id)}} : puzzle.world;
+  return { ...puzzle, slots, ...(world ? {world} : {}) };
 }
 export function remove(puzzle, index) {
   return { ...puzzle, slots: puzzle.slots.map((id, i) => i === index ? null : id) };
@@ -32,17 +42,17 @@ export function evaluate(level, slots) {
   return solution(level).every((id, i) => id === slots[i]) ? 'correct' : 'retry';
 }
 export function freshState() {
-  return { version: 1, levelIndex: 0, puzzles: Object.fromEntries(LEVELS.map(l => [l.id, newPuzzle(l)])), solved: [], volume: .65, muted: false };
+  return { version: 2, levelIndex: 0, puzzles: Object.fromEntries(LEVELS.map(l => [l.id, newPuzzle(l)])), solved: [], volume: .65, muted: false };
 }
 export function restoreState(raw) {
   const state = freshState();
   try {
     const saved = JSON.parse(raw);
-    if (!saved || saved.version !== 1) return state;
+    if (!saved || ![1,2].includes(saved.version)) return state;
     if (Number.isInteger(saved.levelIndex) && saved.levelIndex >= 0 && saved.levelIndex < LEVELS.length) state.levelIndex = saved.levelIndex;
     if (typeof saved.volume === 'number' && Number.isFinite(saved.volume)) state.volume = Math.max(0, Math.min(1, saved.volume));
     state.muted = saved.muted === true;
-    state.solved = LEVELS.filter(l => Array.isArray(saved.solved) && saved.solved.includes(l.id)).map(l => l.id);
+    state.solved = LEVELS.filter(l => Array.isArray(saved.solved) && saved.solved.includes(l.id) && !(saved.version===1 && l.id==='sprout')).map(l => l.id);
     for (const level of LEVELS) {
       const puzzle = saved.puzzles?.[level.id];
       const valid = solution(level);
@@ -51,7 +61,12 @@ export function restoreState(raw) {
       if (puzzle.slots.length !== valid.length || !puzzle.slots.every(id => id === null || valid.includes(id))) continue;
       const placed = puzzle.slots.filter(Boolean);
       if (new Set(placed).size !== placed.length) continue;
-      state.puzzles[level.id] = { tray: [...puzzle.tray], slots: [...puzzle.slots] };
+      const restored = { tray: [...puzzle.tray], slots: [...puzzle.slots], world:{} };
+      for (const id of restored.tray) {
+        const point = puzzle.world?.[id];
+        restored.world[id] = point && Number.isFinite(point.x) && Number.isFinite(point.y) ? {x:Math.max(0,Math.min(1,point.x)),y:Math.max(0,Math.min(1,point.y))} : homePosition(restored,id);
+      }
+      state.puzzles[level.id] = restored;
     }
   } catch { /* inaccessible/corrupt storage starts a playable fresh game */ }
   return state;

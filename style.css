@@ -843,3 +843,7 @@ footer {
 }
 .level-button {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem}
 .level-achievement {height:.65rem;font-size:.65rem;line-height:1}
+.gem.is-dragging{z-index:8;transition:none;cursor:grabbing;filter:drop-shadow(0 5px 5px #394a3e35)}
+.shelf-label{top:auto;bottom:.35rem;font-size:.625rem;opacity:.6}
+.gem.is-active,.gem:focus-visible{z-index:5}
+.gem.is-active.is-dragging{z-index:8}

@@ -52,7 +52,7 @@ test('saved valid game restores exact labels, slots, settings and progress', () 
   assert.notEqual(restored.puzzles.walk.slots,state.puzzles.walk.slots);
 });
 test('corrupt or out-of-date storage falls back; duplicates and foreign fragments do not restore', () => {
-  for (const raw of ['broken', 'null', '{}', '{"version":2}', undefined]) assert.equal(restoreState(raw).version,1);
+  for (const raw of ['broken', 'null', '{}', '{"version":99}', undefined]) assert.equal(restoreState(raw).version,2);
   const saved = freshState(); saved.levelIndex = 99; saved.volume = 9; saved.solved = ['unknown','sprout','sprout'];
   saved.puzzles.walk.slots = [solution(LEVELS[1])[0],solution(LEVELS[1])[0],null];
   saved.puzzles.lantern.tray = ['fake','x','y','z'];
@@ -63,11 +63,11 @@ test('corrupt or out-of-date storage falls back; duplicates and foreign fragment
 });
 test('storage security/quota failure does not prevent playing', () => {
   const blocked = { getItem() { throw new Error('blocked'); }, setItem() { throw new Error('quota'); } };
-  assert.equal(readState(blocked).version,1); assert.equal(saveState(blocked,freshState()),false);
-  assert.equal(readState(null).version,1);
+  assert.equal(readState(blocked).version,2); assert.equal(saveState(blocked,freshState()),false);
+  assert.equal(readState(null).version,2);
   let stored;
   assert.equal(saveState({setItem(k,v) { stored = [k,v]; }},freshState()),true);
-  assert.equal(stored[0],STORAGE_KEY); assert.equal(JSON.parse(stored[1]).version,1);
+  assert.equal(stored[0],STORAGE_KEY); assert.equal(JSON.parse(stored[1]).version,2);
 });
 test('original scores have valid bounded notes, rich arrangement retains melody and no ambiguous exact duplicates', () => {
   const globalIds = LEVELS.flatMap(l => solution(l)); assert.equal(new Set(globalIds).size,globalIds.length);

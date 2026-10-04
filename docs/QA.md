@@ -1,3 +1,50 @@
+# ローカル試作 v0.3 の検証記録
+
+2026-10-04。macOS、Google Chrome 154、Playwright CLI 0.1.22、Node.js 25。専用Chromeを隔離して検証。現在の公開版はv0.2.1（`ac3ec56`）で、以下の変更はローカルだけ。push・Pages設定・可視性の変更はしていない。別Stopwatchへ変更なし。
+
+## 最新の結果
+
+- `npm test`: **23 / 23成功**。`npm run check`: 成功。
+- 実Chrome通し **68項目**、native touch **18項目**、操作と演出の重点確認 **10項目**成功。通しとタッチのpageerrorは0。
+- 全3曲×通常／完成の実WebAudio出力6ケースにNaN/Infinityなし、非ゼロ、クリッピングなし。
+- 新1曲目完成の230発音、旧3曲目完成の133発音は、停止150ms後にすべてonended、管理ノード0、playing=false。
+- 試聴WAVの明示再生、16.95秒のduration、8秒位置へのシーク、背景停止と復帰時の停止維持を確認。HTTP200 `audio/wav`、RIFF、1,495,034 bytes。部分取得HTTP206、44 bytes。320×568で横はみ出しなし、試聴ページのconsole error・pageerror 0。
+
+## 自由配置の受け入れ確認
+
+自由位置と台座順を分けて保存。盤面内の任意位置・台座から引き離す・盤面外での端制限・reload保持を実操作で確認。実際の宝石DOMが掴んだ位置との差を保って動き、台座近傍だけで滑らかに吸着する。hoverは保存せず、releaseで1回確定。Esc／pointercancel／リサイズ／ドラッグ中の数字キーで取消し、後続pointerupが変更を上書きしない。
+
+台座同士の交換、自由位置から占有台座への交換、端での移動後も全宝石を保持。CDPのnative touchStart/move/end/cancelでも移動・吸着・交換・取消しを確認し、ドラッグ中にページがスクロールしない。タップだけの移動／はめる／外す／左右交換と、矢印・数字・Shift＋左右・Deleteによる代替操作も確認。
+
+全3曲で390×844、390×664、320×568の宝石・お手本・並び再生・判定・停止が同時に見え、試聴で文言が変わっても停止まで画面内。200%文字は縦スクロールで操作へ到達でき、横はみ出しなし。reduced-motionで動作中のアニメーション0。通常動作では着床時のアニメーションを確認。誤順でも同じ接続光、お手本中の断片発光0、完成編曲・鑑賞画面は明示判定後だけ。
+
+リサイズ通知より先にpointerupが来る競合と、drag後の本当の次のタップまで抑止する問題は、実Chromeで再現して修正・再検証した。
+
+## 新しい1曲の音声と範囲
+
+「ひとつの芽」だけを3/4、96 BPM、8小節に再作曲し、独自合成のオルゴール風へ変更。設計と試聴は[PROTOTYPE-v0.3.md](PROTOTYPE-v0.3.md)。残り2曲の楽曲データは公開版`ac3ec56`と一致する。
+
+| 新1曲目 | events | peak | RMS | 曲＋余韻 |
+| --- | --- | --- | --- | --- |
+| 通常 | 46 | .19501 | .04223 | 16.65秒 |
+| 完成 | 70 | .19033 | .04286 | 16.65秒 |
+
+上記は48kHz OfflineAudioContext、master1で合成した値。配布WAVは44.1kHz／16bit PCM／mono、終端余白込み16.95秒、peak .19033／RMS .04311。完成と通常の旋律は同じで、伴奏を変える。全和声境界の根音と次の低音までのリリース制限はNodeで検証。
+
+WAVの有限値や操作の成功は、曲の魅力の評価を代替しない。ヘッドレスChromeでは主観的な実聴を行っていない。内蔵スピーカー、実iPhone Safari／Android、Bluetooth切替、画面ロック、初心者の耳による難易度は未確認。背景は模擬visibilitychangeを使用。まずこの1曲の試聴を受けてから残り2曲を扱う。
+
+## 再現と証拠
+
+起動・QA・WAV再生成のコマンドはREADME。実行コードは`scripts/browser-qa.js`、`mobile-qa.js`、`review-qa.js`、`audio-qa.js`、`sample-qa.js`。生成用Chromeは`render-song.mjs`のfinallyで終了する。
+
+ローカル証拠（Git除外）は`output/playwright/free-browser.log`（68）、`free-mobile.log`（18）、`free-focus.log`（10）、`free-audio.log`（6編曲と230／133停止）、`free-sample.log`（WAVプレイヤー）。画像は`free-320.png`、`free-390.png`、`first-song-player.png`。試作用サーバー4187だけを継続する。
+
+専用セッション`demo5-free`はclose済み。CLIは`(no browsers)`、専用daemon PID36659と`playwright_chromiumdev_profile`のChrome／helper残数0をプロセス一覧で確認。他アプリや別プロジェクトのプロセスは終了していない。
+
+---
+
+以下は公開前の旧v0.2検証記録。現在の曲・操作の検証値には使用しない。
+
 # ローカル試作 v0.2 の検証記録
 
 検証日: 2026-10-04。macOS、Google Chrome 154、Playwright CLI 0.1.22、Node.js 25。隔離したテストChromeで実行。

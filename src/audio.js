@@ -1,4 +1,4 @@
-import { timeline } from './music.js?v=0.2.1';
+import { timeline } from './music.js?v=0.3.0-local';
 
 // A defined upper harmonic gives the lead presence on small speakers without
 // increasing master volume. Chords and bass stay behind the melody.
@@ -8,6 +8,9 @@ export const VOICES = {
   pad: { peak: .025, attack: .085, decay: .13, sustain: .54, release: .12 },
   spark: { peak: .045, attack: .006, decay: .045, sustain: .18, release: .07 },
   arp: { peak: .035, attack: .012, decay: .06, sustain: .22, release: .12 },
+  musicbox: {peak:.105,attack:.004,release:1.8,modes:[[1,1,.52],[2,.17,.24],[3,.06,.13],[4.05,.025,.07]]},
+  musicboxSoft: {peak:.036,attack:.006,release:.9,modes:[[1,1,.32],[2,.14,.13],[4.05,.015,.06]]},
+  musicboxBass: {peak:.034,attack:.007,release:.7,modes:[[1,1,.30],[2,.25,.16]]},
 };
 
 export class SoundPlayer {
@@ -48,6 +51,7 @@ export class SoundPlayer {
     if (this.context.state !== 'running') throw new Error('音声を開始できませんでした。再生ボタンをもう一度押してください。');
   }
   tone(event, start) {
+    if(event.timbre?.startsWith('musicbox'))return this.bellTone(event,start);
     const ctx = this.context;
     const oscillator = ctx.createOscillator();
     const gain = ctx.createGain();
@@ -81,6 +85,23 @@ export class SoundPlayer {
     };
     oscillator.start(at);
     oscillator.stop(at + event.length + voice.release + .025);
+  }
+  bellTone(event,start) {
+    const ctx=this.context,voice=VOICES[event.timbre],at=start+event.at;
+    const root=440*2**((event.midi-69)/12);
+    for(const [ratio,weight,decay] of voice.modes){
+      const oscillator=ctx.createOscillator(),gain=ctx.createGain();
+      const peak=voice.peak*weight*event.velocity;
+      const length=ratio===1?event.length+voice.release:Math.min(event.length+voice.release,decay*7);
+      oscillator.type='sine';oscillator.frequency.value=root*ratio;
+      gain.gain.setValueAtTime(0,at);gain.gain.linearRampToValueAtTime(peak,at+voice.attack);
+      gain.gain.exponentialRampToValueAtTime(Math.max(.00001,peak*Math.exp(-(length-voice.attack)/decay)),at+length);
+      gain.gain.linearRampToValueAtTime(0,at+length+.04);
+      oscillator.connect(gain);gain.connect(this.master);
+      const node={oscillator,gain};this.nodes.add(node);
+      oscillator.onended=()=>{oscillator.disconnect();gain.disconnect();this.nodes.delete(node);};
+      oscillator.start(at);oscillator.stop(at+length+.05);
+    }
   }
   async play(level, ids, { rich = false, label = '再生中', revealFragments = true, immersive = false } = {}) {
     this.stop();

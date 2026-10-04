@@ -1,41 +1,33 @@
-async (page) => {
-  const context=await page.context().browser().newContext({viewport:{width:390,height:664},hasTouch:true,isMobile:true,reducedMotion:'reduce'});
-  const phone=await context.newPage();let checks=0;const errors=[];
-  phone.on('pageerror',error=>errors.push(error.message));
-  const assert=(v,msg)=>{if(!v)throw new Error(msg);checks++;};
-  try {
-    await phone.goto('http://127.0.0.1:4187/demo5/');
-    await phone.locator('#levels button').nth(2).tap();
-    const cdp=await context.newCDPSession(phone);
-    const slots=()=>phone.evaluate(()=>JSON.parse(localStorage.getItem('demo5.sound-stitch.v1')).puzzles.lantern.slots);
-    const gemCenter=async id=>{const b=await phone.locator(`[data-gem="${id}"]`).boundingBox();return{x:b.x+b.width/2,y:b.y+b.height/2};};
-    const socket=async i=>phone.evaluate(i=>{const b=document.getElementById('gem-stage'),r=b.getBoundingClientRect();return{x:r.x+(i+.5)*b.clientWidth/4,y:r.y+b.clientHeight*.29};},i);
-    const move=async(id,to,cancel=false)=>{
-      const from=await gemCenter(id);
-      await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...from,id:1}]});
-      for(let i=1;i<=8;i++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:from.x+(to.x-from.x)*i/8,y:from.y+(to.y-from.y)*i/8,id:1}]});
-      await cdp.send('Input.dispatchTouchEvent',{type:cancel?'touchCancel':'touchEnd',touchPoints:[]});
-    };
-    await phone.locator('[data-gem="l-moss"]').tap();await phone.waitForFunction(()=>!document.getElementById('stop').disabled);
-    assert(await phone.locator('.gem.is-playing').count()===1,'tap one preview');assert((await slots()).every(v=>!v),'tap does not place');
-    await phone.locator('#stop').tap();
-    await move('l-moss',await socket(0));assert((await slots())[0]==='l-moss','touch drag placement');assert(await phone.locator('#stop').isDisabled(),'drop no stray click/play');
-    await move('l-rain',await socket(1));await move('l-moss',await socket(1));assert((await slots())[0]==='l-rain'&&(await slots())[1]==='l-moss','touch swap');
-    const before=JSON.stringify(await slots());
-    await move('l-moss',{x:3,y:5});assert(JSON.stringify(await slots())===before,'outside touch cancel');
-    await move('l-moss',await socket(3),true);assert(JSON.stringify(await slots())===before,'touchCancel retains');
-    assert(await phone.locator('.gem').count()===4,'four stone conservation');
-    assert(await phone.evaluate(()=>scrollY===0&&document.documentElement.scrollWidth<=innerWidth),'no drag scroll/overflow');
-    const shelf=await phone.evaluate(()=>{const b=document.getElementById('gem-stage'),r=b.getBoundingClientRect();return{x:r.x+30,y:r.y+b.clientHeight*.85};});
-    await move('l-moss',shelf);assert(!(await slots()).includes('l-moss'),'touch return shelf');
-    // Tap fallback places without dragging and moving never reveals correctness.
-    await phone.locator('[data-gem="l-fern"]').tap();await phone.locator('#place-active').tap();assert((await slots()).includes('l-fern'),'tap fallback');
-    assert(await phone.locator('#stop').isDisabled(),'fallback stops preview');
-    await phone.locator('#move-right').tap();assert((await slots()).includes('l-fern'),'tap exchange');
-    await phone.locator('#return-active').tap();assert(!(await slots()).includes('l-fern'),'tap removal');
-    await phone.locator('[data-gem="l-shell"]').tap();await phone.locator('#reference').tap();
-    await phone.waitForTimeout(100);assert(await phone.locator('.gem.is-playing').count()===0,'touch reference no answer glow');
-    await phone.locator('#stop').tap();assert(errors.length===0,`errors ${errors}`);
-    return {checks,errors,viewport:'390x664',touch:'Chrome CDP native touchStart/move/end/cancel'};
-  } finally {await context.close();}
+async(page)=>{
+ const context=await page.context().browser().newContext({viewport:{width:390,height:664},hasTouch:true,isMobile:true,reducedMotion:'reduce'});
+ const phone=await context.newPage();let checks=0;const errors=[];phone.on('pageerror',e=>errors.push(e.message));
+ const assert=(v,msg)=>{if(!v)throw new Error(msg);checks++;};
+ try{
+  await phone.goto('http://127.0.0.1:4187/demo5/');await phone.locator('#levels button').nth(2).tap();const cdp=await context.newCDPSession(phone);
+  const saved=()=>phone.evaluate(()=>JSON.parse(localStorage.getItem('demo5.sound-stitch.v1')).puzzles.lantern);
+  const board=()=>phone.evaluate(()=>{const b=document.getElementById('gem-stage'),r=b.getBoundingClientRect();return{x:r.left+b.clientLeft,y:r.top+b.clientTop,w:b.clientWidth,h:b.clientHeight};});
+  const point=async(x,y)=>{const b=await board();return{x:b.x+x*b.w,y:b.y+y*b.h};};
+  const move=async(id,to,cancel=false)=>{
+   // Activate the stone before picking it up, so overlapping free stones remain accessible.
+   await phone.locator(`[data-gem="${id}"]`).tap();
+   const b=await phone.locator(`[data-gem="${id}"]`).boundingBox(),from={x:b.x+b.width/2,y:b.y+b.height/2};
+   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...from,id:1}]});
+   for(let i=1;i<=8;i++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:from.x+(to.x-from.x)*i/8,y:from.y+(to.y-from.y)*i/8,id:1}]});
+   await cdp.send('Input.dispatchTouchEvent',{type:cancel?'touchCancel':'touchEnd',touchPoints:[]});
+  };
+  await phone.locator('[data-gem="l-moss"]').tap();await phone.waitForFunction(()=>!document.getElementById('stop').disabled);assert(await phone.locator('.gem.is-playing').count()===1,'one touch preview');await phone.locator('#stop').tap();
+  await move('l-moss',await point(.48,.60));assert(!(await saved()).slots.includes('l-moss'),'touch freely placed');assert(Math.abs((await saved()).world['l-moss'].x-.48)<.01,'touch point held');assert(await phone.locator('#stop').isDisabled(),'drop no replay');
+  const free=JSON.stringify((await saved()).world['l-moss']);await phone.reload();assert(JSON.stringify((await saved()).world['l-moss'])===free,'touch free restore');
+  await move('l-moss',await point(.125,.29));assert((await saved()).slots[0]==='l-moss','touch snap');
+  await move('l-moss',await point(.70,.58));assert(!(await saved()).slots.includes('l-moss'),'touch detach');
+  await move('l-moss',{x:2,y:(await point(.7,.60)).y});assert(!(await saved()).slots.includes('l-moss'),'off board becomes free');
+  const b=await board(),gem=await phone.locator('[data-gem="l-moss"]').boundingBox();assert(gem.x>=b.x&&gem.x+gem.width<=b.x+b.w,'touch safe edge');
+  const before=JSON.stringify(await saved());await move('l-moss',await point(.45,.58),true);assert(JSON.stringify(await saved())===before,'touchcancel restores');
+  await move('l-moss',await point(.125,.29));await move('l-rain',await point(.375,.29));await move('l-moss',await point(.375,.29));assert(JSON.stringify((await saved()).slots.slice(0,2))===JSON.stringify(['l-rain','l-moss']),'touch swap');
+  assert(await phone.locator('.gem').count()===4,'touch conserves stones');assert(await phone.evaluate(()=>scrollY===0&&document.documentElement.scrollWidth<=innerWidth),'drag prevents page scroll/overflow');
+  await phone.locator('[data-gem="l-moss"]').tap();await phone.locator('#move-left').tap();assert((await saved()).slots[0]==='l-moss','tap only slot swap');await phone.locator('#return-active').tap();assert(!(await saved()).slots.includes('l-moss'),'tap only detach');
+  await phone.locator('#place-active').tap();assert((await saved()).slots.includes('l-moss'),'tap nearest empty');
+  await phone.locator('#reference').tap();await phone.waitForFunction(()=>!document.getElementById('stop').disabled);assert(await phone.locator('.gem.is-playing').count()===0,'touch reference hides order');await phone.locator('#stop').tap();
+  assert(errors.length===0,`errors ${errors}`);return{checks,errors,touch:'native touchStart/move/end/cancel',viewport:'390x664'};
+ }finally{await context.close();}
 }

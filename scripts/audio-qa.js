@@ -24,14 +24,18 @@ async (page) => {
   for(const score of results.scores)if(score.invalid || score.peak>.8 || score.rms<.005)throw new Error(`invalid audio ${JSON.stringify(score)}`);
   if(results.leadHarmonicRatios[0]<.2 || results.leadHarmonicRatios[1]<.08)throw new Error('missing upper harmonics');
   // Actual AudioContext nodes disconnect shortly after stop, including future notes.
-  const lifecycle=await page.evaluate(async()=>{
-    const {LEVELS}=await import('./src/music.js');const {SoundPlayer}=await import('./src/audio.js');
-    const p=new SoundPlayer(),ok=await p.play(LEVELS[2],LEVELS[2].fragments.map(f=>f.id),{rich:true});
-    let ended=0;const count=p.nodes.size;
-    for(const node of p.nodes) {const original=node.oscillator.onended;node.oscillator.onended=()=>{ended++;original();};}
-    p.stop();await new Promise(resolve=>setTimeout(resolve,150));
-    const result={ok,count,ended,nodes:p.nodes.size,playing:p.playing};await p.context.close();return result;
-  });
-  if(!lifecycle.ok || lifecycle.count!==lifecycle.ended || lifecycle.nodes || lifecycle.playing)throw new Error(`stop leak ${JSON.stringify(lifecycle)}`);
-  return {...results,lifecycle};
+  const lifecycles=[];
+  for(const index of [0,2]){
+    const lifecycle=await page.evaluate(async(index)=>{
+      const {LEVELS}=await import('./src/music.js');const {SoundPlayer}=await import('./src/audio.js');
+      const p=new SoundPlayer(),ok=await p.play(LEVELS[index],LEVELS[index].fragments.map(f=>f.id),{rich:true});
+      let ended=0;const count=p.nodes.size;
+      for(const node of p.nodes){const original=node.oscillator.onended;node.oscillator.onended=()=>{ended++;original();};}
+      p.stop();await new Promise(resolve=>setTimeout(resolve,150));
+      const result={song:LEVELS[index].id,ok,count,ended,nodes:p.nodes.size,playing:p.playing};await p.context.close();return result;
+    },index);
+    if(!lifecycle.ok||lifecycle.count!==lifecycle.ended||lifecycle.nodes||lifecycle.playing)throw new Error(`stop leak ${JSON.stringify(lifecycle)}`);
+    lifecycles.push(lifecycle);
+  }
+  return {...results,lifecycles};
 }

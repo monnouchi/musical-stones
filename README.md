@@ -1,78 +1,64 @@
 # おとのつづき（仮）
 
-GitHub Pages 向けの静的な音楽パズルです。遺跡で見つけた音の宝石を聴き、石のくぼみに並べて、小さなオリジナル曲をよみがえらせます。楽譜・音名・音楽理論の知識は不要です。Happaとつくるサンプルゲームとして、3つの曲を磨く試作です。
+遺跡で見つけた音の宝石を聴き、動かし、短い独自曲をよみがえらせる音楽パズル。3曲・3段階、楽譜の知識は不要です。静的HTML/CSS/JavaScriptとWebAudioで、GitHub Pagesの`/demo5/`配下に対応します。
 
-v0.2.1 は宝石の直接操作、曲・音色・完成演出を刷新しました。公開URL: <https://monnouchi.github.io/demo5/>。重点レビューは [docs/REVIEW.md](docs/REVIEW.md) を参照してください。
+**現在のローカル試作は v0.3.0-local。公開は保留です。** 宝石を自由な位置へ動かす操作と、1曲だけ作り直したオルゴール風の試聴を用意しました。[公開版v0.2.1](https://monnouchi.github.io/demo5/?v=0.2.1)とは異なります。
 
-## ローカルで遊ぶ
-
-Node.js 20 以降。依存パッケージのインストールは不要です。
+## まず新しい1曲を聴く
 
 ```sh
 npm start
 ```
 
-<http://127.0.0.1:4187/demo5/> を開いてください。<http://127.0.0.1:4187/> でも動作します。終了はサーバーのターミナルで Ctrl+C。別ポートは `PORT=4188 npm start`。ES modules を使用するため、`file://` で直接開かず静的 HTTP サーバーを使ってください。
+Node.js 20以降、アプリの依存インストール不要。試聴は <http://127.0.0.1:4187/demo5/review/first-song.html>、ゲームは <http://127.0.0.1:4187/demo5/>。WAV本体は [review/sprout-musicbox.wav](review/sprout-musicbox.wav)。ポート変更は`PORT=4188 npm start`。ES modulesのため`file://`ではなくHTTPで開きます。
 
-## 遊び方
+1曲目を3拍子・8小節、モチーフの反復→移調→問いかけ→返事・回帰→終止として作り直しました。約17秒。WAVはゲームと同じWebAudio合成で出力した完成曲です。残り2曲の楽曲データは変更せず、横展開はこの1曲の試聴後に判断します。設計は [docs/PROTOTYPE-v0.3.md](docs/PROTOTYPE-v0.3.md)。
 
-1. 「お手本」で曲を聴く。いつでも何度でも使えます。
-2. 宝石をタップして、ひとつの断片を聴く。
-3. 宝石をドラッグして石のくぼみへ。近づくと吸いつき、離すと配置します。配置済み同士は交換、棚へ戻すと取り外し、台座の外で離すと取消です。
-4. 「並びを聴く」で試す。置いた宝石を左から続けて鳴らし、空のくぼみは飛ばします。
-5. 全部置いたら「よみがえらせる」。正解時は光が静まり、すべての宝石が輝き、分散伴奏と余韻を加えた一曲が鳴ります。「聴くのをやめる」や Esc でいつでも戻れます。
+## 自由に動かす
 
-ドラッグを使わず、宝石をタップ→「はめる」で空いているくぼみへ配置できます。左右ボタンで交換し、「戻す」で棚へ戻せます。制限時間・失敗回数のペナルティはありません。
+- 宝石をタップして試聴。ドラッグを離した場所へ、そのまま置けます。
+- 台座の近くにだけ磁石が働き、吸着します。引き離せば自由な位置へ。
+- 配置済み同士は交換。自由な宝石を占有台座へ入れると、元の宝石はその自由位置へ移ります。
+- 盤面の端では安全に止まります。Esc・pointercancel・リサイズ中は移動を取消。
+- 宝石を聴く→空いた盤面をタップでも自由移動。「はめる」は近い空き台座へ、「外す」は台座から外へ。
+- 左右ボタンは自由位置で移動、台座上で隣への移動・交換。ドラッグを使わず操作できます。
 
 | キー | 操作 |
 | --- | --- |
-| Tab / Shift+Tab | ボタンへ移動 |
-| Enter / Space | 宝石の試聴、ボタン操作 |
-| 1〜4 | フォーカス中または選択中の宝石を配置 |
-| ← / → | 宝石を隣と交換。棚の宝石は左端／右端の空きへ配置 |
-| Delete / Backspace | フォーカス中の宝石を棚へ |
-| P | 現在の並びを再生 |
-| S / Esc | 停止。ドラッグ中の Esc は取消 |
-| M | ミュート切り替え |
+| Tab、Enter / Space | 宝石へ移動、試聴、ボタン操作 |
+| 矢印キー | 自由な位置へ移動（台座からも引き離す） |
+| 1〜4 | 台座を指定して配置 |
+| Shift＋左右 | 台座上で隣と交換 |
+| Delete / Backspace | 台座から外す |
+| P / S / Esc / M | 並びを再生／停止・移動取消／ミュート |
 
-入力欄の操作中は全体ショートカットを無効にします。音量・ミュート・配置・達成はブラウザーに保存します。保存不可でも遊べます。画面を離れると停止し、復帰や再読み込みでは自動再生しません。完成画面にも停止・音量・ミュートがあります。OS の動きを減らす設定では背景や宝石のアニメーションを止め、音と静的な光を残します。拡大文字では画面をスクロールできます。
+自由位置と台座順序を分けて保存し、再読み込み・サイズ変更でも保持します。音量・ミュート・達成も保存。画面を離れると停止し、戻っても自動再生しません。拡大文字とreduced-motionに対応します。
 
-## 3つの独自曲
+正解はお手本の再構成。お手本は断片を発光させず、曲線の光は正誤に関係なく隣接宝石をつなぎます。色・A/B/C/Dは無作為な識別、全宝石が全台座に入ります。空の台座を飛ばして、配置済みの音だけを左から再生します。明示判定後は完成編曲と鑑賞画面が開き、停止・音量・ミュートを操作できます。
 
-| 曲 | 断片数 | 完成時の長さ | 聴くポイント |
-| --- | --- | --- | --- |
-| ひとつの芽 | 2 | 約9.7秒 | C-E-G-Aの呼びかけ、B→Cの解決、返事の終止 |
-| 窓辺のさんぽ | 3 | 約10.5秒 | E-G-Eの音型の発展、高い山場から主音へ帰着 |
-| 灯りの帰り道 | 4 | 約18秒 | 呼びかけ、展開、下り、V→Iと最後の余韻 |
-
-音列・和声・装飾は本試作のために制作したオリジナルです。第三者の曲・音源・サンプル・CDN・外部フォントは使いません。Web Audio API の独自倍音波形と三角波で合成します。主旋律を B4〜C6 に収め、上側の倍音を加えて伴奏を控えめにしています。試聴は旋律・低音・薄い和音、完成時は同じ旋律に軽い分散伴奏・応答音・最後の和音の余韻を加えます。内蔵スピーカーでの聴き心地は人による確認が必要です。
-
-勝利条件は「お手本の再構成」です。別の順序も音楽として成立し得るため、気持ちよさだけで厳密な判定はしません。A/B/C/D と色は新規ゲームごとに無作為に割り当てる識別子で、すべての宝石がすべてのくぼみに入ります。隣接した宝石の曲線は正誤によらず同じです。お手本は断片を光らせず、順序を視覚表示しません。シャッフルは解答と同じ並びを避けます。
-
-コード・文書・独自曲データ・アイコンは [MIT License](LICENSE)。アプリ自体は外部依存なし。Playwright CLI は開発QA専用です。
-
-## GitHub Pages
-
-配信に必要なファイルは `index.html`、`style.css`、`src/`、`assets/`、`.nojekyll`。相対URLで `/demo5/` 配下に対応し、ビルド工程・バックエンド・外部APIは不要です。
-
-mon によって Pages の公開設定済みです。**Settings → Pages → Build and deployment → Deploy from a branch** で branch `main`、folder `/(root)` を指定する構成です。追加の公開 workflow は不要です。CSSとJavaScriptのURLには同じ版番号を付け、旧版キャッシュとの混在を避けます。配信に関わるファイルを変更するリリースでは、HTMLと各moduleの`?v=`をまとめて更新してください。既存の設定や可視性は今回の改修で変更していません。
-
-## 検証
+## 検証と再生成
 
 ```sh
 npm test
 npm run check
 ```
 
-Node 標準テストで判定・交換・取消・シャッフル・保存・和声境界・音声停止・非同期競合を検証します。実 Chrome QA は Playwright CLI と Google Chrome が必要です。
+実Chrome QAは開発用Playwright CLIとGoogle Chromeで実行します。
 
 ```sh
-playwright-cli -s=demo5-polish open http://127.0.0.1:4187/demo5/ --config=scripts/chrome-qa.config.json
-playwright-cli -s=demo5-polish run-code --filename=scripts/browser-qa.js
-playwright-cli -s=demo5-polish run-code --filename=scripts/mobile-qa.js
-playwright-cli -s=demo5-polish run-code --filename=scripts/audio-qa.js
-playwright-cli -s=demo5-polish run-code --filename=scripts/review-qa.js
-playwright-cli -s=demo5-polish close
+playwright-cli -s=demo5-free open http://127.0.0.1:4187/demo5/ --config=scripts/chrome-qa.config.json
+playwright-cli -s=demo5-free run-code --filename=scripts/browser-qa.js
+playwright-cli -s=demo5-free run-code --filename=scripts/mobile-qa.js
+playwright-cli -s=demo5-free run-code --filename=scripts/review-qa.js
+playwright-cli -s=demo5-free run-code --filename=scripts/audio-qa.js
+playwright-cli -s=demo5-free run-code --filename=scripts/sample-qa.js
+playwright-cli -s=demo5-free close
 ```
 
-QA の画像・ログは `output/playwright/`、`.playwright-cli/` に保存しGitから除外します。設計は [docs/DESIGN.md](docs/DESIGN.md)、結果・未確認事項は [docs/QA.md](docs/QA.md)。
+試聴WAVは`node scripts/render-song.mjs`で再生成。開発用Playwright Coreのimport先を`DEMO5_PLAYWRIGHT_MODULE`で指定できます。レンダリング用Chromeは`finally`で終了します。結果・制約は [docs/QA.md](docs/QA.md)。旧公開版の重点レビューは [docs/REVIEW.md](docs/REVIEW.md)。
+
+## 配信構成と権利
+
+`index.html`、`style.css`、`src/`、`assets/`、`.nojekyll`をrootに配置。既存Pagesは`main`／`/(root)`。バックエンド・ビルド工程・外部APIは不要です。CSS・module importは同じ版番号のURLでキャッシュ混在を避けます。
+
+独自曲・合成音色・コード・文書は [MIT License](LICENSE)。第三者音源・既存曲の引用・CDN・外部フォントは使いません。曲の魅力や実スピーカーの聴き心地は、ユーザーの試聴で判断する段階です。

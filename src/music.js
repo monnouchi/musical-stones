@@ -6,18 +6,28 @@ const phrase = (id, notes, harmony, ornaments = []) => ({ id, notes, harmony, or
 
 export const LEVELS = [
   {
-    id: 'sprout', title: 'ひとつの芽', subtitle: 'まずは、はじまりと終わり。',
-    description: '2つのかけら。呼びかける音と、ほっと落ち着く音を聴き分けよう。',
-    hint: '上にのぼる呼びかけから、ゆっくり落ち着く返事へ。お手本と聴き比べてみよう。',
-    bpm: 108, beats: 8,
-    fragments: [
-      // The original C-E-G-A seed now breathes, then leans into the reply.
-      phrase('s-kite', [n(72,0,.42,.78),n(76,.75,.42,.88),n(79,1.5,1.02),n(76,3,.32,.72),n(79,3.5,.35,.86),n(81,4.25,1.08,.94),n(79,5.75,.4,.78),n(74,6.5,.42,.74),n(71,7.25,.52,.8)],
-        [h(0,[64,67,69],60),h(4,[64,69,72],53),h(6,[65,67,71],55)], [n(76,2.75,.18,.45),n(77,5.5,.18,.4)]),
-      // The boundary resolves B to C before the original descending reply.
-      phrase('s-pebble', [n(72,0,.28,.8),n(79,.5,.28,.88),n(76,1,.35,.79),n(74,1.75,.95,.86),n(76,3,.35,.7),n(72,3.75,.65,.76),n(74,4.75,.32,.74),n(76,5.25,.32,.8),n(71,5.75,.32,.7),n(72,6.5,1.2,.83)],
-        [h(0,[64,67,72],60),h(2,[65,69,72],50),h(4,[65,71,74],55),h(6,[64,67,72],60)], [n(67,2.9,.16,.38)]),
-    ],
+    id:'sprout',title:'ひとつの芽',subtitle:'小さな呼びかけに、返事が戻る。',
+    description:'同じ小さな音の形が、姿を変えて戻ってきます。呼びかけと返事を聴き比べよう。',
+    hint:'高い音へ問いかける終わりから、その音を受け止める返事へ。最後はゆっくり落ち着きます。',
+    bpm:96,beats:12,meter:3,instrument:'musicbox',tail:1.65,
+    fragments:[
+      // Four bars written as a complete antecedent, not assembled from puzzle clips.
+      // Motif M: E-G-A-G, two eighths opening into two quarters.
+      // Bar 3 transposes M down a tone; bar 4 opens its last note toward the reply.
+      phrase('s-kite',[
+        n(76,0,.46,.86),n(79,.5,.46,.75),n(81,1,.90,.96),n(79,2,.82,.80),
+        n(76,3,.90,.84),n(72,4,.46,.73),n(74,4.5,.46,.76),n(76,5,.82,.81),
+        n(74,6,.46,.83),n(77,6.5,.46,.75),n(79,7,.90,.91),n(77,8,.82,.78),
+        n(74,9,.46,.80),n(77,9.5,.46,.74),n(79,10,.90,.89),n(83,11,.86,.84)
+      ],[h(0,[60,64,67],48),h(3,[60,64,67],45),h(6,[60,65,69],50),h(9,[59,62,65],43)]),
+      // The reply resolves B to C at the summit, returns M verbatim, and cadences.
+      phrase('s-pebble',[
+        n(84,0,.46,.96),n(83,.5,.46,.81),n(81,1,.90,.88),n(79,2,.82,.78),
+        n(76,3,.46,.84),n(79,3.5,.46,.75),n(81,4,.90,.92),n(79,5,.82,.79),
+        n(77,6,.46,.79),n(76,6.5,.46,.72),n(74,7,.90,.81),n(71,8,.82,.70),
+        n(72,9,2.5,.84)
+      ],[h(0,[60,64,67],48),h(3,[60,64,67],45),h(6,[60,65,69],50),h(7.5,[59,62,65],43),h(9,[60,64,67],48)])
+    ]
   },
   {
     id: 'walk', title: '窓辺のさんぽ', subtitle: 'つづきの音を、さがして。',
@@ -59,8 +69,12 @@ export function timeline(level, ids, rich = false) {
     const fragment = level.fragments.find(f => f.id === id);
     if (!fragment) throw new Error('Unknown fragment');
     const base = index * level.beats;
-    for (const note of fragment.notes) events.push({ ...note, at: (base + note.beat) * secondsPerBeat, length: note.duration * secondsPerBeat, voice: 'melody', fragment: id });
+    for (const note of fragment.notes) events.push({ ...note, at: (base + note.beat) * secondsPerBeat, length: note.duration * secondsPerBeat, voice: 'melody', ...(level.instrument==='musicbox'?{timbre:'musicbox'}:{}), fragment: id });
     const harmonies = fragment.harmony;
+    if(level.instrument==='musicbox'){
+      musicboxAccompaniment(events,fragment,base,level,secondsPerBeat,rich);
+      return;
+    }
     const bassBeats = [...new Set([...harmonies.map(change => change.beat), ...Array.from({length: Math.ceil(level.beats / 2)}, (_, i) => i * 2)])].sort((a,b) => a-b);
     for (let i = 0; i < bassBeats.length; i++) {
       const b = bassBeats[i];
@@ -77,5 +91,20 @@ export function timeline(level, ids, rich = false) {
     });
     if (rich) for (const note of fragment.ornaments ?? []) events.push({ ...note, at: (base + note.beat) * secondsPerBeat, length: note.duration * secondsPerBeat, voice: 'spark', fragment: id });
   });
-  return { events, duration: ids.length * level.beats * secondsPerBeat, fragmentDuration: level.beats * secondsPerBeat, tailDuration: rich ? .85 : .15 };
+  return { events, duration: ids.length * level.beats * secondsPerBeat, fragmentDuration: level.beats * secondsPerBeat, tailDuration: level.tail ?? (rich ? .85 : .15) };
+}
+
+function musicboxAccompaniment(events,fragment,base,level,beatSeconds,rich){
+  const harmonies=fragment.harmony;
+  harmonies.forEach((change,i)=>{
+    const end=harmonies[i+1]?.beat??level.beats;
+    events.push({midi:change.bass,at:(base+change.beat)*beatSeconds,length:Math.min(.65,end-change.beat-.18)*beatSeconds,voice:'bass',timbre:'musicboxBass',velocity:.74,fragment:fragment.id});
+  });
+  for(let bar=0;bar<level.beats;bar+=3){
+    for(const offset of rich?[1,2]:[1]){
+      const at=bar+offset,change=harmonies.filter(h=>h.beat<=at).at(-1);
+      const tones=rich?change.chord.slice(offset===1?0:1,offset===1?2:3):[change.chord[1]];
+      tones.forEach((midi,j)=>events.push({midi,at:(base+at+j*.045)*beatSeconds,length:.28*beatSeconds,voice:rich?'arp':'pad',timbre:'musicboxSoft',velocity:offset===1?.66:.50,fragment:fragment.id}));
+    }
+  }
 }

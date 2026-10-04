@@ -1,7 +1,7 @@
-import { LEVELS } from './music.js?v=0.2.1';
-import { solution, shuffled, place, remove, evaluate, readState, saveState } from './game.js?v=0.2.1';
-import { geometry, dropTarget, applyDrop } from './interaction.js?v=0.2.1';
-import { SoundPlayer } from './audio.js?v=0.2.1';
+import { LEVELS } from './music.js?v=0.3.0-local';
+import { solution, shuffled, place, moveFree, evaluate, readState, saveState } from './game.js?v=0.3.0-local';
+import { geometry, dropTarget, applyDrop, gemPoint, magnetPoint, clampPoint } from './interaction.js?v=0.3.0-local';
+import { SoundPlayer } from './audio.js?v=0.3.0-local';
 
 const $ = id => document.getElementById(id);
 let storage;
@@ -16,7 +16,10 @@ const level = () => LEVELS[state.levelIndex];
 const puzzle = () => state.puzzles[level().id];
 const letter = id => String.fromCharCode(65 + puzzle().tray.indexOf(id));
 const name = id => `音 ${letter(id)}`;
-const boardGeometry = () => geometry($('gem-stage').clientWidth, $('gem-stage').clientHeight, puzzle().slots.length);
+const boardGeometry = () => {
+  const gem=gems.values().next().value;
+  return geometry($('gem-stage').clientWidth,$('gem-stage').clientHeight,puzzle().slots.length,gem?.clientWidth,gem?.clientHeight);
+};
 const player = new SoundPlayer({ onUpdate: updatePlayback });
 player.setVolume(state.volume, state.muted);
 
@@ -71,11 +74,11 @@ function commit(next, message) {
 function changeLevel(index) {
   cancelDrag(); player.stop(); state.levelIndex = index;
   active = null; awakened = false; feedback = ''; feedbackKind = '';
-  persist(); render(); status('宝石を聴いて、くぼみへ動かそう。');
+  persist(); render(); status('自由に動かして、くぼみの近くへ。');
 }
 function audition(id) {
   active = id; controls();
-  status(`${name(id)}：ドラッグ、または「はめる」で台座へ。`);
+  status(`${name(id)}：自由に動かす／盤面をタップ／はめる。`);
   player.play(level(), [id], { label: `${name(id)} を再生中` });
 }
 function controls() {
@@ -83,8 +86,10 @@ function controls() {
   const count = puzzle().slots.filter(Boolean).length;
   $('active-name').textContent = active ? name(active) : '宝石を選ぶ';
   $('place-active').disabled = !active || source >= 0 || !puzzle().slots.includes(null);
-  $('move-left').disabled = source <= 0;
-  $('move-right').disabled = source < 0 || source === puzzle().slots.length - 1;
+  $('move-left').disabled = !active || source===0;
+  $('move-right').disabled = !active || source===puzzle().slots.length-1;
+  $('move-left').setAttribute('aria-label',source>=0?'左の宝石と交換':'選んだ宝石を左へ');
+  $('move-right').setAttribute('aria-label',source>=0?'右の宝石と交換':'選んだ宝石を右へ');
   $('return-active').disabled = source < 0;
   $('play-order').disabled = count === 0;
   $('check').disabled = count !== level().fragments.length;
@@ -93,10 +98,11 @@ function controls() {
     el.classList.toggle('is-active', active === id);
     el.setAttribute('aria-pressed', String(active === id));
     const index = puzzle().slots.indexOf(id);
-    el.setAttribute('aria-label', `${name(id)} を聴く。${index >= 0 ? `${index + 1}番目に配置。左右キーで交換、Deleteで棚へ。` : '棚にあります。数字キーで配置。'}`);
+    el.dataset.location=index>=0 ? `socket-${index}` : 'free';
+    el.setAttribute('aria-label', `${name(id)} を聴く。${index>=0 ? `${index+1}番目に配置。` : '自由な位置。'}矢印キーで自由移動、数字で台座へ、Deleteで外す。`);
   });
 }
-function layout(displayPuzzle = puzzle()) {
+function layout(displayPuzzle = puzzle(), movingPoint = null) {
   const g = boardGeometry();
   $('connections').setAttribute('viewBox', `0 0 ${g.width} ${g.height}`);
   $('gem-stage').style.setProperty('--shelf-label-top', `${g.height * .53}px`);
@@ -104,15 +110,17 @@ function layout(displayPuzzle = puzzle()) {
     el.style.left = `${g.x(i)}px`; el.style.top = `${g.socketY}px`;
     el.classList.toggle('is-target', drag?.target?.kind === 'socket' && drag.target.index === i);
   });
-  gems.forEach((el, id) => {
-    const slot = displayPuzzle.slots.indexOf(id);
-    el.style.left = `${g.x(slot < 0 ? displayPuzzle.tray.indexOf(id) : slot)}px`;
-    el.style.top = `${slot < 0 ? g.shelfY : g.socketY}px`;
+  const points=new Map();
+  gems.forEach((el,id)=>{
+    const point=id===drag?.id&&movingPoint ? movingPoint : gemPoint(displayPuzzle,id,g);
+    points.set(id,point);
+    el.style.left=`${point.x}px`;el.style.top=`${point.y}px`;
   });
   $('connections').innerHTML = displayPuzzle.slots.slice(0, -1).map((id, i) => {
     if (!id || !displayPuzzle.slots[i + 1]) return '';
-    const x1 = g.x(i) + 16, x2 = g.x(i + 1) - 16, y = g.socketY + 7;
-    return `<path class="light-link${drag?.isDragging ? ' is-preview' : ''}" d="M${x1} ${y} C${x1 + 12} ${y + 27}, ${x2 - 12} ${y + 27}, ${x2} ${y}"/>`;
+    const a=points.get(id),b=points.get(displayPuzzle.slots[i+1]);
+    const x1=a.x+16,x2=b.x-16,y1=a.y+7,y2=b.y+7;
+    return `<path class="light-link${drag?.isDragging ? ' is-preview' : ''}" d="M${x1} ${y1} C${x1+12} ${y1+27}, ${x2-12} ${y2+27}, ${x2} ${y2}"/>`;
   }).join('');
 }
 function render() {
@@ -166,83 +174,84 @@ function render() {
   $('next').hidden = !(state.solved.includes(current.id) && state.levelIndex < LEVELS.length - 1);
   if (lastPlaying) updatePlayback(lastPlaying);
 }
-function pointerDown(event, id) {
-  if (event.button !== 0 || drag) return;
-  suppressClickUntil = 0;
-  drag = { id, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, base: puzzle(), el: event.currentTarget, isDragging: false, target: { kind: 'cancel' } };
+function pointerDown(event,id) {
+  if(event.button!==0||drag)return;
+  suppressClickUntil=0;
+  const rect=event.currentTarget.getBoundingClientRect();
+  drag={id,pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,grabX:event.clientX-(rect.left+rect.width/2),grabY:event.clientY-(rect.top+rect.height/2),base:puzzle(),el:event.currentTarget,isDragging:false,target:{kind:'cancel'},width:$('gem-stage').clientWidth,height:$('gem-stage').clientHeight,viewportWidth:innerWidth,viewportHeight:innerHeight};
   event.currentTarget.setPointerCapture(event.pointerId);
 }
+function pointerTarget(event,gesture) {
+  const stage=$('gem-stage'),rect=stage.getBoundingClientRect(),g=boardGeometry();
+  return {g,target:dropTarget(event.clientX-rect.left-stage.clientLeft-gesture.grabX,event.clientY-rect.top-stage.clientTop-gesture.grabY,g)};
+}
+function geometryChanged(gesture){
+  return gesture.width!==$('gem-stage').clientWidth||gesture.height!==$('gem-stage').clientHeight||gesture.viewportWidth!==innerWidth||gesture.viewportHeight!==innerHeight;
+}
 function pointerMove(event) {
-  if (!drag || event.pointerId !== drag.pointerId) return;
-  if (!drag.isDragging && Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < 8) return;
-  if (!drag.isDragging) {
-    drag.isDragging = true; active = drag.id; player.stop(); controls();
-    drag.el.classList.add('is-dragged');
-    $('gem-stage').classList.add('is-dragging');
-    $('drag-ghost').innerHTML = gemArt(drag.id);
-    $('drag-ghost').hidden = false;
-    status(`${name(drag.id)} を移動中。くぼみで配置、外で取消。`);
+  if(!drag||event.pointerId!==drag.pointerId)return;
+  if(geometryChanged(drag)){cancelDrag();return;}
+  if(!drag.isDragging&&Math.hypot(event.clientX-drag.startX,event.clientY-drag.startY)<8)return;
+  if(!drag.isDragging){
+    drag.isDragging=true;active=drag.id;player.stop();controls();
+    drag.el.classList.add('is-dragging');$('gem-stage').classList.add('is-dragging');
+    status(`${name(drag.id)} を移動中。近づくと吸着。`);
   }
   event.preventDefault();
-  const rect = $('gem-stage').getBoundingClientRect(), g = boardGeometry();
-  const x = event.clientX - rect.left, y = event.clientY - rect.top;
-  drag.target = dropTarget(x, y, g);
-  layout(applyDrop(drag.base, drag.id, drag.target));
-  // Clamp the floating gem so an outside cancel never creates page overflow.
-  const ghostX = drag.target.kind === 'socket' ? g.x(drag.target.index) : Math.max(39, Math.min(g.width - 39, x));
-  const ghostY = drag.target.kind === 'socket' ? g.socketY : Math.max(46, Math.min(g.height - 46, y - 35));
-  $('drag-ghost').style.left = `${ghostX}px`; $('drag-ghost').style.top = `${ghostY}px`;
+  const {g,target}=pointerTarget(event,drag);drag.target=target;
+  layout(applyDrop(drag.base,drag.id,target,g),magnetPoint(target,g));
 }
-function endDrag() {
-  const ended = drag;
-  drag = null;
-  if (!ended) return;
-  ended.el.classList.remove('is-dragged');
-  if (ended.el.hasPointerCapture(ended.pointerId)) ended.el.releasePointerCapture(ended.pointerId);
-  $('gem-stage').classList.remove('is-dragging'); $('drag-ghost').hidden = true;
-  layout();
+function endDrag(restore=true) {
+  const ended=drag;drag=null;if(!ended)return;
+  ended.el.classList.remove('is-dragging');
+  if(ended.el.hasPointerCapture(ended.pointerId))ended.el.releasePointerCapture(ended.pointerId);
+  $('gem-stage').classList.remove('is-dragging');
+  if(restore)layout();
   return ended;
 }
 function cancelDrag() {
-  const ended = endDrag();
-  if (ended?.isDragging) { suppressClickUntil = performance.now() + 250; status('元の場所へ戻しました。'); }
+  const ended=endDrag();
+  if(ended?.isDragging){suppressClickUntil=performance.now()+250;status('移動を取り消しました。');}
 }
 function pointerUp(event) {
-  if (!drag || event.pointerId !== drag.pointerId) return;
-  const ended = endDrag();
-  if (!ended.isDragging) return;
-  suppressClickUntil = performance.now() + 250;
-  const rect = $('gem-stage').getBoundingClientRect();
-  const target = dropTarget(event.clientX - rect.left, event.clientY - rect.top, boardGeometry());
-  const next = applyDrop(ended.base, ended.id, target);
-  if (next === ended.base) { status('元の場所へ戻しました。'); return; }
-  commit(next, target.kind === 'socket' ? `${name(ended.id)} が ${target.index + 1} 番目にはまりました。` : `${name(ended.id)} を棚へ戻しました。`);
-  if (target.kind === 'socket' && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    ended.el.classList.add('just-snapped');
-    setTimeout(() => ended.el.classList.remove('just-snapped'), 450);
+  if(!drag||event.pointerId!==drag.pointerId)return;
+  if(geometryChanged(drag)){cancelDrag();return;}
+  const {g,target}=pointerTarget(event,drag),ended=endDrag(false);
+  if(!ended.isDragging)return;
+  suppressClickUntil=performance.now()+250;
+  const next=applyDrop(ended.base,ended.id,target,g);
+  commit(next,target.kind==='socket' ? `${name(ended.id)} が ${target.index+1} 番目にはまりました。` : `${name(ended.id)} をここに置きました。`);
+  if(target.kind==='socket'&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
+    ended.el.classList.add('just-snapped');setTimeout(()=>ended.el.classList.remove('just-snapped'),450);
   }
 }
 function put(index) {
   if (active) commit(place(puzzle(), active, index), `${name(active)} を ${index + 1} 番目へ。`);
 }
 function moveActive(delta) {
-  const index = puzzle().slots.indexOf(active);
-  if (index >= 0 && index + delta >= 0 && index + delta < puzzle().slots.length) put(index + delta);
+  const index=puzzle().slots.indexOf(active);
+  if(index>=0&&index+delta>=0&&index+delta<puzzle().slots.length)put(index+delta);
+  else if(index<0)nudge(delta*16,0);
+}
+function nudge(dx,dy) {
+  if(!active)return;
+  const g=boardGeometry(),point=gemPoint(puzzle(),active,g),next=clampPoint(point.x+dx,point.y+dy,g);
+  commit(moveFree(puzzle(),active,{x:next.x/g.width,y:next.y/g.height}),`${name(active)} を自由に移動。数字で台座へ。`);
 }
 function returnActive() {
-  const index = puzzle().slots.indexOf(active);
-  if (index >= 0) commit(remove(puzzle(), index), `${name(active)} を棚へ戻しました。`);
+  const index=puzzle().slots.indexOf(active);
+  if(index>=0){const g=boardGeometry(),point=clampPoint(g.x(index),g.socketY+64,g);commit(moveFree(puzzle(),active,{x:point.x/g.width,y:point.y/g.height}),`${name(active)} を台座から外しました。`);}
 }
-function gemKey(event, id) {
-  if (event.ctrlKey || event.metaKey || event.altKey) return;
-  if (/^[1-4]$/.test(event.key) && Number(event.key) <= puzzle().slots.length) {
-    event.preventDefault(); event.stopPropagation(); active = id; put(Number(event.key) - 1);
-  } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-    event.preventDefault(); active = id;
-    if (puzzle().slots.includes(id)) moveActive(event.key === 'ArrowLeft' ? -1 : 1);
-    else put(event.key === 'ArrowLeft' ? puzzle().slots.indexOf(null) : puzzle().slots.lastIndexOf(null));
-  } else if (event.key === 'Delete' || event.key === 'Backspace') {
-    event.preventDefault(); active = id; returnActive();
+function gemKey(event,id) {
+  if(event.ctrlKey||event.metaKey||event.altKey)return;
+  if(/^[1-4]$/.test(event.key)&&Number(event.key)<=puzzle().slots.length){
+    event.preventDefault();event.stopPropagation();active=id;put(Number(event.key)-1);
+  }else if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)){
+    event.preventDefault();active=id;
+    if(event.shiftKey&&['ArrowLeft','ArrowRight'].includes(event.key))moveActive(event.key==='ArrowLeft'?-1:1);
+    else nudge(event.key==='ArrowLeft'?-16:event.key==='ArrowRight'?16:0,event.key==='ArrowUp'?-16:event.key==='ArrowDown'?16:0);
+  }else if(event.key==='Delete'||event.key==='Backspace'){
+    event.preventDefault();active=id;returnActive();
   }
 }
 function playOrder() {
@@ -261,17 +270,19 @@ function check() {
     feedback = `もう少し。${level().hint}`; feedbackKind = 'retry'; render();
   }
 }
-$('reference').addEventListener('click', () => player.play(level(), solution(level()), { label: 'お手本を再生中', revealFragments: false }));
-$('place-active').addEventListener('click', () => put(puzzle().slots.indexOf(null)));
+$('reference').addEventListener('click', () => player.play(level(), solution(level()), {rich:level().instrument==='musicbox',label:'お手本を再生中',revealFragments:false}));
+$('place-active').addEventListener('click',()=>{if(!active)return;const g=boardGeometry(),point=gemPoint(puzzle(),active,g);const empty=puzzle().slots.map((id,i)=>id?null:i).filter(i=>i!==null).sort((a,b)=>Math.abs(g.x(a)-point.x)-Math.abs(g.x(b)-point.x));if(empty.length)put(empty[0]);});
 $('move-left').addEventListener('click', () => moveActive(-1));
 $('move-right').addEventListener('click', () => moveActive(1));
 $('return-active').addEventListener('click', returnActive);
+$('gem-stage').addEventListener('pointerdown',()=>{suppressClickUntil=0;},{capture:true});
+$('gem-stage').addEventListener('click',event=>{if(!active||event.target.closest('.gem')||performance.now()<suppressClickUntil)return;const stage=$('gem-stage'),rect=stage.getBoundingClientRect(),g=boardGeometry(),target=dropTarget(event.clientX-rect.left-stage.clientLeft,event.clientY-rect.top-stage.clientTop,g);commit(applyDrop(puzzle(),active,target,g),target.kind==='socket'?`${name(active)} を ${target.index+1} 番目へ。`:`${name(active)} をここに置きました。`);});
 $('play-order').addEventListener('click', playOrder);
 $('check').addEventListener('click', check);
 for (const id of ['stop', 'room-stop']) $(id).addEventListener('click', () => player.stop());
 $('listening-room').addEventListener('cancel', event => { event.preventDefault(); player.stop(); });
 $('shuffle').addEventListener('click', () => { cancelDrag(); commit({ ...puzzle(), slots: shuffled(solution(level())) }); });
-$('clear').addEventListener('click', () => { cancelDrag(); commit({ ...puzzle(), slots: puzzle().slots.map(() => null) }); });
+$('clear').addEventListener('click',()=>{cancelDrag();const g=boardGeometry();let next=puzzle();next.slots.forEach((id,i)=>{if(id){const point=clampPoint(g.x(i),g.socketY+64,g);next=moveFree(next,id,{x:point.x/g.width,y:point.y/g.height});}});commit(next,'すべての宝石を台座から外しました。');});
 $('next').addEventListener('click', () => changeLevel(Math.min(LEVELS.length - 1, state.levelIndex + 1)));
 function toggleMute() {
   state.muted = !state.muted; player.setVolume(state.volume, state.muted); persist(); soundSettings();
@@ -293,5 +304,5 @@ document.addEventListener('keydown', event => {
 });
 document.addEventListener('visibilitychange', () => { if (document.hidden) { cancelDrag(); player.background(); persist(); } });
 window.addEventListener('pagehide', () => { cancelDrag(); player.background(); persist(); });
-new ResizeObserver(() => { if (!drag) layout(); }).observe($('gem-stage'));
+new ResizeObserver(()=>{if(drag)cancelDrag();layout();}).observe($('gem-stage'));
 render();
