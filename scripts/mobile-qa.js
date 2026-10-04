@@ -1,28 +1,41 @@
-// Chromium touch emulation, separate isolated context. Not an iOS Safari test.
-async page => {
-  const context = await page.context().browser().newContext({ viewport:{width:390,height:844},hasTouch:true,isMobile:true,deviceScaleFactor:1 });
-  const mobile = await context.newPage();const checks=[];const errors=[];
-  const assert = (ok,label) => {if(!ok)throw new Error(label);checks.push(label);};
-  mobile.on('pageerror',error=>errors.push(error.message));
+async (page) => {
+  const context=await page.context().browser().newContext({viewport:{width:390,height:664},hasTouch:true,isMobile:true,reducedMotion:'reduce'});
+  const phone=await context.newPage();let checks=0;const errors=[];
+  phone.on('pageerror',error=>errors.push(error.message));
+  const assert=(v,msg)=>{if(!v)throw new Error(msg);checks++;};
   try {
-    await mobile.goto('http://127.0.0.1:4187/demo5/');await mobile.waitForSelector('#pieces button');
-    assert(await mobile.evaluate(()=>navigator.maxTouchPoints>0),'Touch-enabled Chrome context');
-    await mobile.getByRole('button',{name:'音 A を選ぶ',exact:true}).tap();
-    await mobile.locator('[data-slot="0"]').tap();
-    assert((await mobile.locator('[data-slot="0"]').textContent()).includes('音 A'),'Tap selects and places a piece');
-    await mobile.getByRole('button',{name:'音 B を選ぶ',exact:true}).tap();await mobile.locator('[data-slot="1"]').tap();
-    await mobile.locator('[data-slot="0"]').tap();await mobile.locator('[data-slot="1"]').tap();
-    assert((await mobile.locator('[data-slot="1"]').textContent()).includes('音 A'),'Tap swaps occupied pieces');
-    await mobile.getByRole('button',{name:/置き場所 2 から/}).tap();
-    assert(await mobile.locator('#check').isDisabled(),'Tap remove returns to incomplete state');
-    await mobile.getByRole('button',{name:/^3曲目/}).tap();await mobile.locator('#shuffle').tap();
-    assert((await mobile.locator('#placed-count').textContent()).includes('4 / 4'),'Four-piece layout works with touch');
-    await mobile.locator('#check').tap();assert((await mobile.locator('#feedback').textContent()).includes('もう少し'),'Wrong order gives feedback on mobile');
-    assert(await mobile.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Touch viewport has no horizontal overflow');
-    const targets=await mobile.locator('#pieces button,#slots button,#levels button,.transport button,#reference,#mute').evaluateAll(elements=>elements.map(el=>({label:el.getAttribute('aria-label')||el.textContent,width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height})));
-    assert(targets.every(t=>t.width>=44 && t.height>=44),'Every primary touch target is at least 44×44 CSS pixels');
-    await mobile.screenshot({path:'output/playwright/mobile-touch-level3.png',fullPage:true});
-    assert(errors.length===0,'No JavaScript errors in touch flow');
-    return {passed:checks.length,checks,errors};
+    await phone.goto('http://127.0.0.1:4187/demo5/');
+    await phone.locator('#levels button').nth(2).tap();
+    const cdp=await context.newCDPSession(phone);
+    const slots=()=>phone.evaluate(()=>JSON.parse(localStorage.getItem('demo5.sound-stitch.v1')).puzzles.lantern.slots);
+    const gemCenter=async id=>{const b=await phone.locator(`[data-gem="${id}"]`).boundingBox();return{x:b.x+b.width/2,y:b.y+b.height/2};};
+    const socket=async i=>phone.evaluate(i=>{const b=document.getElementById('gem-stage'),r=b.getBoundingClientRect();return{x:r.x+(i+.5)*b.clientWidth/4,y:r.y+b.clientHeight*.29};},i);
+    const move=async(id,to,cancel=false)=>{
+      const from=await gemCenter(id);
+      await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...from,id:1}]});
+      for(let i=1;i<=8;i++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:from.x+(to.x-from.x)*i/8,y:from.y+(to.y-from.y)*i/8,id:1}]});
+      await cdp.send('Input.dispatchTouchEvent',{type:cancel?'touchCancel':'touchEnd',touchPoints:[]});
+    };
+    await phone.locator('[data-gem="l-moss"]').tap();await phone.waitForFunction(()=>!document.getElementById('stop').disabled);
+    assert(await phone.locator('.gem.is-playing').count()===1,'tap one preview');assert((await slots()).every(v=>!v),'tap does not place');
+    await phone.locator('#stop').tap();
+    await move('l-moss',await socket(0));assert((await slots())[0]==='l-moss','touch drag placement');assert(await phone.locator('#stop').isDisabled(),'drop no stray click/play');
+    await move('l-rain',await socket(1));await move('l-moss',await socket(1));assert((await slots())[0]==='l-rain'&&(await slots())[1]==='l-moss','touch swap');
+    const before=JSON.stringify(await slots());
+    await move('l-moss',{x:3,y:5});assert(JSON.stringify(await slots())===before,'outside touch cancel');
+    await move('l-moss',await socket(3),true);assert(JSON.stringify(await slots())===before,'touchCancel retains');
+    assert(await phone.locator('.gem').count()===4,'four stone conservation');
+    assert(await phone.evaluate(()=>scrollY===0&&document.documentElement.scrollWidth<=innerWidth),'no drag scroll/overflow');
+    const shelf=await phone.evaluate(()=>{const b=document.getElementById('gem-stage'),r=b.getBoundingClientRect();return{x:r.x+30,y:r.y+b.clientHeight*.85};});
+    await move('l-moss',shelf);assert(!(await slots()).includes('l-moss'),'touch return shelf');
+    // Tap fallback places without dragging and moving never reveals correctness.
+    await phone.locator('[data-gem="l-fern"]').tap();await phone.locator('#place-active').tap();assert((await slots()).includes('l-fern'),'tap fallback');
+    assert(await phone.locator('#stop').isDisabled(),'fallback stops preview');
+    await phone.locator('#move-right').tap();assert((await slots()).includes('l-fern'),'tap exchange');
+    await phone.locator('#return-active').tap();assert(!(await slots()).includes('l-fern'),'tap removal');
+    await phone.locator('[data-gem="l-shell"]').tap();await phone.locator('#reference').tap();
+    await phone.waitForTimeout(100);assert(await phone.locator('.gem.is-playing').count()===0,'touch reference no answer glow');
+    await phone.locator('#stop').tap();assert(errors.length===0,`errors ${errors}`);
+    return {checks,errors,viewport:'390x664',touch:'Chrome CDP native touchStart/move/end/cancel'};
   } finally {await context.close();}
 }

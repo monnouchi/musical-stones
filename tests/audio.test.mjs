@@ -29,12 +29,14 @@ test('stop cancels every future note, progress timer and pending asynchronous re
   assert.equal(await pending,false); assert.equal(f.ctx.oscillators.length,0);
   await f.player.play(LEVELS[0],solution(LEVELS[0])); f.player.stop();
   assert.equal(f.player.nodes.size,0); assert.equal(f.clock.active.size,0); assert.equal(f.player.playing,false);
-  for(const osc of f.ctx.oscillators){assert.equal(osc.stops.at(-1),0);assert.equal(osc.disconnected,true);}
+  for(const osc of f.ctx.oscillators){assert.equal(osc.stops.at(-1),.022);osc.onended();assert.equal(osc.disconnected,true);}
+  for(const gain of f.ctx.gains.slice(1)) assert.ok(gain.gain.calls.some(call=>call[0]==='linear' && call[1]===0 && call[2]===.018));
 });
 test('new preview stops previous score instead of layering', async () => {
   const f=fixture(); await f.player.play(LEVELS[2],solution(LEVELS[2]),{rich:true}); const previous=[...f.ctx.oscillators];
   await f.player.play(LEVELS[2],[solution(LEVELS[2])[0]]);
-  assert.equal(f.clock.active.size,1); assert.ok(previous.every(o=>o.disconnected));assert.equal(f.ctx.resumeCount,1);f.player.stop();
+  assert.equal(f.clock.active.size,1); assert.ok(previous.every(o=>o.stops.at(-1)===.022));
+  previous.forEach(o=>o.onended());assert.ok(previous.every(o=>o.disconnected));assert.equal(f.ctx.resumeCount,1);f.player.stop();
 });
 test('reference plays without exposing answer order through fragment highlights', async () => {
   const f=fixture(); await f.player.play(LEVELS[2],solution(LEVELS[2]),{revealFragments:false});
@@ -58,4 +60,10 @@ test('natural completion clears progress and timers; unsupported/rejected audio 
   const errors=[];const broken=new SoundPlayer({contextFactory:()=>{throw new Error('unsupported');},onUpdate:x=>errors.push(x)});
   assert.equal(await broken.play(LEVELS[0],solution(LEVELS[0])),false);assert.equal(errors.at(-1).label,'unsupported');
   const g=fixture();g.ctx.resume=async()=>{throw new Error('blocked');};assert.equal(await g.player.play(LEVELS[0],solution(LEVELS[0])),false);assert.equal(g.player.nodes.size,0);
+});
+test('completed playback includes its tonic tail and leaves immersive mode on stop', async () => {
+  const f=fixture();await f.player.play(LEVELS[0],solution(LEVELS[0]),{rich:true,immersive:true});
+  assert.equal(f.updates.at(-1).immersive,true);
+  assert.ok(f.updates.at(-1).duration > LEVELS[0].beats * 2 * 60 / LEVELS[0].bpm);
+  f.player.stop();assert.equal(f.updates.at(-1).playing,false);
 });

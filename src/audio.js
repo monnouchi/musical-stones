@@ -1,5 +1,15 @@
 import { timeline } from './music.js';
 
+// A defined upper harmonic gives the lead presence on small speakers without
+// increasing master volume. Chords and bass stay behind the melody.
+export const VOICES = {
+  melody: { peak: .13, attack: .009, decay: .09, sustain: .54, release: .10, partials: [1,.32,.14,.06,.025] },
+  bass: { peak: .035, attack: .015, decay: .11, sustain: .26, release: .08, partials: [1,.42,.18] },
+  pad: { peak: .025, attack: .085, decay: .13, sustain: .54, release: .12 },
+  spark: { peak: .045, attack: .006, decay: .045, sustain: .18, release: .07 },
+  arp: { peak: .035, attack: .012, decay: .06, sustain: .22, release: .12 },
+};
+
 export class SoundPlayer {
   constructor({ contextFactory, onUpdate = () => {}, timers = globalThis } = {}) {
     this.contextFactory = contextFactory ?? (() => {
@@ -17,6 +27,7 @@ export class SoundPlayer {
     this.volume = .65;
     this.muted = false;
     this.playing = false;
+    this.waves = new Map();
   }
   setVolume(volume, muted = this.muted) {
     this.volume = Math.max(0, Math.min(1, volume));
@@ -41,15 +52,26 @@ export class SoundPlayer {
     const oscillator = ctx.createOscillator();
     const gain = ctx.createGain();
     const at = start + event.at;
-    const attack = event.voice === 'pad' ? .09 : .012;
-    const tail = event.voice === 'pad' ? .18 : .07;
-    const peaks = { melody: .12, bass: .085, pad: .033, spark: .045 };
-    oscillator.type = event.voice === 'bass' ? 'sine' : 'triangle';
+    const voice = VOICES[event.voice];
+    const attack = Math.min(voice.attack, event.length / 4);
+    const decayEnd = at + Math.min(event.length * .65, attack + voice.decay);
+    const peak = voice.peak * event.velocity;
+    oscillator.type = 'triangle';
+    if (voice.partials && ctx.createPeriodicWave && oscillator.setPeriodicWave) {
+      if (!this.waves.has(event.voice)) {
+        const real = new Float32Array(voice.partials.length + 1);
+        const imaginary = new Float32Array([0, ...voice.partials]);
+        this.waves.set(event.voice, ctx.createPeriodicWave(real, imaginary));
+      }
+      oscillator.setPeriodicWave(this.waves.get(event.voice));
+    }
     oscillator.frequency.value = 440 * 2 ** ((event.midi - 69) / 12);
     gain.gain.setValueAtTime(0, at);
-    gain.gain.linearRampToValueAtTime(peaks[event.voice] * event.velocity, at + attack);
-    gain.gain.exponentialRampToValueAtTime(.001, at + Math.max(attack + .01, event.length));
-    gain.gain.linearRampToValueAtTime(0, at + event.length + tail);
+    gain.gain.linearRampToValueAtTime(peak, at + attack);
+    gain.gain.exponentialRampToValueAtTime(Math.max(.0001, peak * voice.sustain), decayEnd);
+    gain.gain.setValueAtTime(Math.max(.0001, peak * voice.sustain), at + event.length);
+    gain.gain.exponentialRampToValueAtTime(.0001, at + event.length + voice.release);
+    gain.gain.linearRampToValueAtTime(0, at + event.length + voice.release + .012);
     oscillator.connect(gain);
     gain.connect(this.master);
     const node = { oscillator, gain };
@@ -58,9 +80,9 @@ export class SoundPlayer {
       oscillator.disconnect(); gain.disconnect(); this.nodes.delete(node);
     };
     oscillator.start(at);
-    oscillator.stop(at + event.length + tail + .01);
+    oscillator.stop(at + event.length + voice.release + .025);
   }
-  async play(level, ids, { rich = false, label = '再生中', revealFragments = true } = {}) {
+  async play(level, ids, { rich = false, label = '再生中', revealFragments = true, immersive = false } = {}) {
     this.stop();
     if (!ids.length) return false;
     const generation = this.generation;
@@ -68,15 +90,16 @@ export class SoundPlayer {
       await this.ready();
       if (generation !== this.generation) return false;
       const score = timeline(level, ids, rich);
+      const duration = score.duration + score.tailDuration;
       const start = this.context.currentTime + .045;
       for (const event of score.events) this.tone(event, start);
       this.playing = true;
       const update = () => {
         if (generation !== this.generation) return;
         const elapsed = Math.max(0, this.context.currentTime - start);
-        if (elapsed >= score.duration + .25) { this.stop('再生がおわりました。'); return; }
+        if (elapsed >= duration + .12) { this.stop('再生がおわりました。'); return; }
         const index = Math.min(ids.length - 1, Math.floor(elapsed / score.fragmentDuration));
-        this.onUpdate({ playing: true, label, fraction: Math.min(1, elapsed / score.duration), id: revealFragments ? ids[index] : null, index, elapsed, duration: score.duration });
+        this.onUpdate({ playing: true, label, fraction: Math.min(1, elapsed / duration), id: revealFragments ? ids[index] : null, index, elapsed, duration, immersive });
       };
       update();
       this.interval = this.timers.setInterval(update, 45);
@@ -93,10 +116,11 @@ export class SoundPlayer {
     this.interval = null;
     for (const { oscillator, gain } of this.nodes) {
       try {
-        gain.gain.cancelScheduledValues(this.context.currentTime);
-        gain.gain.setValueAtTime(0, this.context.currentTime);
-        oscillator.stop(this.context.currentTime);
-        oscillator.disconnect(); gain.disconnect();
+        const now = this.context.currentTime;
+        if (gain.gain.cancelAndHoldAtTime) gain.gain.cancelAndHoldAtTime(now);
+        else { gain.gain.cancelScheduledValues(now); gain.gain.setValueAtTime(gain.gain.value, now); }
+        gain.gain.linearRampToValueAtTime(0, now + .018);
+        oscillator.stop(now + .022);
       } catch { /* already ended */ }
     }
     this.nodes.clear();

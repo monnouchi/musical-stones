@@ -1,117 +1,106 @@
-// Run in an isolated Playwright CLI Chrome session after a fresh snapshot:
-// playwright-cli -s=demo5-music run-code --filename scripts/browser-qa.js
-async page => {
-  const report = [];
-  const assert = (value, label) => { if (!value) throw new Error(label); report.push(label); };
-  const errors = [];
-  page.on('pageerror', error => errors.push(error.message));
-  await page.addInitScript(() => {
-    const Original = window.AudioContext;
-    window.AudioContext = class extends Original {
-      constructor(...args) {
-        super(...args);
-        const analyser = this.createAnalyser(); analyser.fftSize = 2048;
-        const oscillators = new Set();
-        window.__audioQA = { context: this, analyser, oscillators };
-        const makeGain = this.createGain.bind(this); let first = true;
-        this.createGain = () => { const gain = makeGain(); if (first) { gain.connect(analyser); first = false; } return gain; };
-        const makeOsc = this.createOscillator.bind(this);
-        this.createOscillator = () => { const osc = makeOsc(); oscillators.add(osc); osc.addEventListener('ended', () => oscillators.delete(osc)); return osc; };
-      }
-    };
-  });
-  await page.goto('http://127.0.0.1:4187/demo5/');
-  await page.waitForSelector('#pieces button');
-  const rms = () => page.evaluate(() => {
-    if (!window.__audioQA) return 0;
-    const samples = new Float32Array(2048); window.__audioQA.analyser.getFloatTimeDomainData(samples);
-    return Math.sqrt(samples.reduce((sum,x) => sum + x*x,0) / samples.length);
-  });
-  assert(await page.evaluate(() => !window.__audioQA), 'No AudioContext or autoplay at load');
-  assert(await page.locator('#check').isDisabled(), 'Incomplete order cannot be submitted');
-  await page.getByRole('button', { name:'音 A を聴く', exact:true }).click();
-  await page.waitForTimeout(450);
-  assert(await rms() > .0001, 'Explicit preview produces real Chrome PCM output');
-  await page.locator('#mute').click(); await page.waitForTimeout(250);
-  assert(await rms() < .00001, 'Mute silences real PCM output');
-  await page.locator('#mute').click(); await page.waitForTimeout(150);
-  assert(await rms() > .0001, 'Unmute restores audio during playback');
-  await page.locator('#stop').click(); await page.waitForTimeout(100);
-  assert(await rms() < .00001, 'Stop silences all scheduled audio');
-  assert(await page.evaluate(() => window.__audioQA.oscillators.size === 0), 'Stop releases scheduled oscillators');
-  await page.locator('#shuffle').click();
-  await page.locator('#check').click();
-  assert((await page.locator('#feedback').textContent()).includes('もう少し'), 'Incorrect full order offers a listening hint');
-  await page.locator('#clear').click();
-  await page.getByRole('button',{name:'音 A を選ぶ',exact:true}).focus(); await page.keyboard.press('Enter');
-  await page.keyboard.press('2');
-  assert((await page.locator('[data-slot="1"]').textContent()).includes('音 A'), 'Keyboard Enter + digit places a fragment');
-  await page.getByRole('button',{name:'音 B を選ぶ',exact:true}).focus(); await page.keyboard.press('Space');
-  await page.keyboard.press('1');
-  await page.locator('[data-slot="1"]').focus(); await page.keyboard.press('Enter'); await page.keyboard.press('1');
-  assert((await page.locator('[data-slot="0"]').textContent()).includes('音 A'), 'Keyboard swaps occupied slots');
-  await page.locator('#clear').focus(); await page.keyboard.press('Enter');
-  await page.locator('[data-focus="select-s-kite"]').focus(); await page.keyboard.press('Enter'); await page.keyboard.press('1');
-  await page.locator('[data-focus="select-s-pebble"]').focus(); await page.keyboard.press('Enter'); await page.keyboard.press('2');
-  await page.locator('#check').focus(); await page.keyboard.press('Enter');
-  assert((await page.locator('#feedback').textContent()).includes('つながった'), 'First song solved entirely with keyboard');
-  await page.waitForTimeout(550);
-  assert(await rms() > .0001, 'Completion plays the full arrangement');
-  await page.keyboard.press('Escape');await page.waitForTimeout(100);
-  assert(await rms() < .00001, 'Escape stops completion playback');
-  await page.locator('#volume').fill('23');
+async (page) => {
+  let checks=0;
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  const assert=(value,label)=>{if(!value)throw new Error(label);checks++;};
+  const url='http://127.0.0.1:4187/demo5/';
+  await page.goto('about:blank');const cdp=await page.context().newCDPSession(page);await cdp.send('Storage.clearDataForOrigin',{origin:'http://127.0.0.1:4187',storageTypes:'local_storage'});await cdp.detach();await page.setViewportSize({width:1280,height:900});await page.goto(url);
+  await page.emulateMedia({reducedMotion:'reduce'});
+  const saved=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('demo5.sound-stitch.v1')));
+  const slots=async()=>{const s=await saved();return s.puzzles[['sprout','walk','lantern'][s.levelIndex]].slots;};
+  const nav=i=>page.locator('#levels button').nth(i).click();
+  const choose=id=>page.locator(`[data-gem="${id}"]`).click();
+  const put=async(id,index)=>{await page.locator(`[data-gem="${id}"]`).focus();await page.keyboard.press(String(index+1));};
+  const solutions=[['s-kite','s-pebble'],['w-sand','w-cloud','w-reed'],['l-moss','l-rain','l-fern','l-shell']];
+  assert(await page.locator('.gem').count()===2,'initial gems');
+  assert(await page.locator('#stop').isDisabled(),'no autoplay');
+  assert(await page.locator('#move-right').isDisabled(),'no active move');
+  await choose('s-kite');assert(await page.locator('#stop').isEnabled(),'tap plays');
+  await page.locator('#place-active').click();assert((await slots()).includes('s-kite'),'tap alternative places');
+  await page.locator('#return-active').click();assert((await slots()).every(id=>!id),'tap removes');
+  await put('s-kite',0);await put('s-pebble',1);
+  await page.locator('#play-order').click();assert(!await page.locator('#listening-room').evaluate(el=>el.open),'no reward before judge');await page.locator('#stop').click();
+  await put('s-kite',1);assert(JSON.stringify(await slots())===JSON.stringify(['s-pebble','s-kite']),'keyboard swap');
+  assert(await page.locator('.light-link').count()===1,'wrong order connects');
+  await page.locator('#check').click();assert((await page.locator('#feedback').textContent()).includes('もう少し'),'wrong verdict');
+  assert(!await page.locator('#listening-room').evaluate(el=>el.open),'wrong no room');
+  await put('s-kite',0);await page.locator('#check').click();
+  await page.waitForFunction(()=>document.getElementById('listening-room').open);
+  assert(await page.locator('.room-gem').count()===2,'all stones glow');
+  assert(await page.locator('#room-stop').evaluate(el=>el===document.activeElement),'room focus');
+  await page.locator('#room-mute').click();assert(await page.locator('#room-mute').getAttribute('aria-pressed')==='true','room mute');
+  await page.locator('#room-volume').fill('40');assert((await saved()).volume===.4,'room volume saved');
+  await page.keyboard.press('Escape');assert(!await page.locator('#listening-room').evaluate(el=>el.open),'escape closes room');
+  assert(await page.locator('#check').evaluate(el=>el===document.activeElement),'focus restored');
   await page.locator('#mute').click();
-  const savedSlots = await page.locator('#slots').textContent();
-  await page.reload();await page.waitForSelector('#pieces button');
-  assert(await page.locator('#volume').inputValue() === '23', 'Volume survives reload');
-  assert(await page.locator('#mute').getAttribute('aria-pressed') === 'true', 'Mute survives reload');
-  assert(await page.locator('#slots').textContent() === savedSlots, 'Exact order and labels survive reload');
-  assert((await page.locator('#levels').textContent()).includes('✓'), 'Completion survives reload');
-  assert(await page.evaluate(() => !window.__audioQA), 'Reload restores state without starting audio');
-  await page.locator('#mute').click();
-  // White-box solution values are used only here to exercise the remaining level transitions.
-  const idsByLevel = [['w-sand','w-cloud','w-reed'],['l-moss','l-rain','l-fern','l-shell']];
-  for (let levelIndex=1;levelIndex<3;levelIndex++) {
-    await page.getByRole('button',{name:new RegExp(`^${levelIndex+1}曲目`)}).click();
-    for(const [slotIndex,id] of idsByLevel[levelIndex-1].entries()) {
-      await page.locator(`[data-focus="select-${id}"]`).click();
-      await page.locator(`[data-slot="${slotIndex}"]`).click();
-    }
-    await page.locator('#check').click();
-    assert((await page.locator('#feedback').textContent()).includes('つながった'), `Song ${levelIndex+1} completes and plays`);
-    await page.waitForTimeout(300);await page.locator('#stop').click();
-  }
-  assert((await page.locator('#feedback').textContent()).includes('3曲'), 'All-three completion is displayed');
-  await page.locator('#reference').click();await page.waitForTimeout(350);
-  // Playwright forces document visibility in this macOS Chrome environment.
-  // Exercise the actual application event handler with an explicit hidden
-  // event; record this as simulation rather than natural tab-switch coverage.
-  await page.evaluate(() => {
-    Object.defineProperty(document,'hidden',{configurable:true,value:true});
-    document.dispatchEvent(new Event('visibilitychange'));
-  });await page.waitForTimeout(150);
-  assert(await page.evaluate(() => window.__audioQA.context.state === 'suspended'), 'Simulated visibilitychange stops and suspends real audio');
-  await page.evaluate(() => {
-    delete document.hidden;document.dispatchEvent(new Event('visibilitychange'));
-  });await page.waitForTimeout(150);
-  assert(await page.locator('#stop').isDisabled(), 'Returning to the tab does not auto-resume');
-  await page.locator('#reference').click();await page.waitForTimeout(350);
-  assert(await rms() > .0001, 'Explicit playback works after background return');
+  await page.locator('#reference').click();await page.waitForTimeout(100);
+  assert(await page.locator('.gem.is-playing').count()===0,'reference hides sequence');
   await page.locator('#stop').click();
-  await page.locator('#reference').click();await page.waitForTimeout(300);
-  await page.goto('about:blank');await page.goBack();await page.waitForSelector('#pieces button');
-  assert(await page.evaluate(() => !window.__audioQA), 'Actual pagehide/back navigation restores without autoplay');
-  await page.getByRole('button',{name:/^1曲目/}).click();await page.locator('#reference').click();
-  await page.waitForTimeout(5250);
-  assert(await page.locator('#stop').isDisabled(), 'Natural song completion stops progress and audio');
-  await page.setViewportSize({width:1280,height:1000});
-  await page.screenshot({path:'output/playwright/desktop.png',fullPage:true});
-  assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Desktop has no horizontal overflow');
-  await page.setViewportSize({width:390,height:844});
-  await page.screenshot({path:'output/playwright/mobile.png',fullPage:true});
-  assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), '390px screen has no horizontal overflow');
-  await page.setViewportSize({width:320,height:640});
-  assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), '320px screen has no horizontal overflow');
-  assert(errors.length === 0, `No page JavaScript errors (${errors.length})`);
-  return {passed:report.length,checks:report,errors};
+  await page.reload();assert(JSON.stringify(await slots())===JSON.stringify(solutions[0]),'reload restores slots');
+  assert((await saved()).solved.includes('sprout'),'reload solved');
+  assert(await page.locator('#volume').inputValue()==='40','reload loudness');
+  // Actual pointer capture/drag paths. One gem stays one node throughout.
+  await nav(2);
+  const drag=async(id,target,mode='up')=>{
+    const box=await page.locator(`[data-gem="${id}"]`).boundingBox();
+    await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();
+    await page.mouse.move(target.x,target.y,{steps:8});
+    if(mode==='cancel')await page.locator(`[data-gem="${id}"]`).dispatchEvent('pointercancel');
+    else if(mode==='escape')await page.keyboard.press('Escape');
+    await page.mouse.up();
+  };
+  const target=async index=>page.evaluate(i=>{const b=document.getElementById('gem-stage'),r=b.getBoundingClientRect();return{x:r.left+(i+.5)*b.clientWidth/4,y:r.top+b.clientHeight*.29};},index);
+  await drag('l-moss',await target(0));assert((await slots())[0]==='l-moss','drag places');
+  assert(await page.locator('#stop').isDisabled(),'drag no unsolicited audio');
+  await drag('l-rain',await target(1));await drag('l-moss',await target(1));
+  assert(JSON.stringify((await slots()).slice(0,2))===JSON.stringify(['l-rain','l-moss']),'drag swaps');
+  const before=JSON.stringify(await slots());
+  await drag('l-moss',{x:2,y:4});assert(JSON.stringify(await slots())===before,'outside cancel');
+  await drag('l-moss',await target(3),'cancel');assert(JSON.stringify(await slots())===before,'pointercancel keeps stones');
+  await drag('l-moss',await target(3),'escape');assert(JSON.stringify(await slots())===before,'escape cancel');
+  assert(await page.locator('.gem').count()===4,'no missing/duplicate stones');
+  const shelf=await page.evaluate(()=>{const b=document.getElementById('gem-stage'),r=b.getBoundingClientRect();return{x:r.left+40,y:r.top+b.clientHeight*.85};});
+  await drag('l-moss',shelf);assert(!(await slots()).includes('l-moss'),'drag removes to shelf');
+  for(let i=0;i<4;i++)await put(solutions[2][i],i);
+  assert(await page.locator('.light-link').count()===3,'adjacency 3 links');
+  await page.locator('#check').click();await page.waitForFunction(()=>document.getElementById('listening-room').open);
+  assert(await page.locator('.room-gem').count()===4,'four gem completion');
+  await page.locator('#room-stop').click();assert(await page.locator('#stop').isDisabled(),'explicit room stop');
+  await nav(1);for(let i=0;i<3;i++)await put(solutions[1][i],i);await page.locator('#check').click();
+  await page.waitForFunction(()=>document.getElementById('listening-room').open);await page.locator('#room-stop').click();
+  assert((await saved()).solved.length===3,'all levels judged');
+  // Changing level cancels future audio; hidden -> return never autoplays.
+  await page.locator('#reference').click();await page.waitForTimeout(100);await nav(0);
+  assert(await page.locator('#stop').isDisabled(),'level stops sound');
+  await page.locator('#reference').click();await page.waitForTimeout(100);
+  await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));});
+  assert(await page.locator('#stop').isDisabled(),'background stops');
+  await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:false});document.dispatchEvent(new Event('visibilitychange'));});
+  assert(await page.locator('#stop').isDisabled(),'foreground does not autoplay');
+  await page.locator('#reference').click();await page.waitForFunction(()=>!document.getElementById('stop').disabled);assert(await page.locator('#stop').isEnabled(),'explicit resume works');await page.locator('#stop').click();
+  await page.locator('.help summary').click();await page.locator('#shuffle').click();
+  const order=await slots();assert(order.every(Boolean)&&order[0]!=='s-kite','shuffle cannot solve itself');
+  await page.locator('#clear').click();assert((await slots()).every(id=>!id),'clear all');
+  await page.locator('.help summary').click();
+  const mobile=[];
+  for(const viewport of [{width:390,height:844},{width:390,height:664},{width:320,height:568}]) {
+    await page.setViewportSize(viewport);
+    for(let i=0;i<3;i++) {
+      await nav(i);await page.evaluate(()=>scrollTo(0,0));
+      const metric=await page.evaluate(()=>({width:document.documentElement.scrollWidth,visible:['gem-stage','reference','play-order','check','stop'].every(id=>{const r=document.getElementById(id).getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;}),touch:['reference','play-order','check','stop','place-active','move-left','move-right','return-active'].every(id=>document.getElementById(id).getBoundingClientRect().height>=44)}));
+      assert(metric.width<=viewport.width,'no horizontal overflow');assert(metric.visible,`core visible ${viewport.width}x${viewport.height}/level${i}`);assert(metric.touch,'44px controls');
+      const first=solutions[i][0];await choose(first);await page.evaluate(()=>scrollTo(0,0));
+      assert(await page.locator('#stop').evaluate(el=>el.getBoundingClientRect().bottom<=innerHeight),'after tap core visible');await page.locator('#stop').click();
+      mobile.push({viewport,level:i+1,...metric});
+    }
+  }
+  await page.screenshot({path:'output/playwright/polish-320.png'});
+  const noMotion=await page.evaluate(()=>document.getAnimations().filter(a=>a.playState==='running').length===0);
+  assert(noMotion,'reduced motion has no active animation');
+  await page.evaluate(()=>document.documentElement.style.fontSize='200%');
+  assert(await page.evaluate(()=>document.documentElement.scrollHeight>innerHeight),'enlarged text scrolls');
+  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'enlarged text no overflow');
+  await page.locator('#stop').scrollIntoViewIfNeeded();assert(await page.locator('#stop').isVisible(),'enlarged controls reachable');
+  await page.evaluate(()=>document.documentElement.style.fontSize='');
+  assert(errors.length===0,`page errors: ${errors}`);
+  return {checks,errors,mobile};
 }

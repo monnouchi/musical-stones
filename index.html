@@ -3,48 +3,55 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f6f3ea">
-  <meta name="description" content="小さな音のかけらを聴いて、つないで、一曲に。楽譜のいらない音楽パズル。">
+  <meta name="theme-color" content="#ded6c2">
+  <meta name="description" content="遺跡で見つけた音の宝石を聴いて、つなぎ、眠っていた小さな曲をよみがえらせる音楽パズル。">
   <title>おとのつづき — 音楽パズル試作</title>
   <link rel="icon" href="./assets/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./style.css">
   <script type="module" src="./src/app.js"></script>
 </head>
 <body>
+  <svg class="ambient-staff" viewBox="0 0 1000 300" preserveAspectRatio="none" aria-hidden="true"><g><path d="M-40 100 Q210 55 480 110 T1040 90"/><path d="M-40 120 Q210 75 480 130 T1040 110"/><path d="M-40 140 Q210 95 480 150 T1040 130"/><path d="M-40 160 Q210 115 480 170 T1040 150"/><path d="M-40 180 Q210 135 480 190 T1040 170"/></g></svg>
   <div class="shell">
     <header class="site-header">
-      <a href="./" class="wordmark" aria-label="おとのつづき ホーム"><span class="brand-symbol" aria-hidden="true">⌁</span> おとのつづき<span class="prototype">PROTOTYPE</span></a>
-      <div class="sound-settings">
-        <button id="mute" class="icon-button" type="button" aria-pressed="false">音あり</button>
-        <label class="volume-label" for="volume">音量</label>
-        <input id="volume" type="range" min="0" max="100" value="65" aria-label="音量">
-      </div>
+      <a href="./" class="wordmark" aria-label="おとのつづき ホーム"><span class="brand-symbol" aria-hidden="true">◇</span> おとのつづき</a>
+      <div class="sound-settings"><button id="mute" type="button" class="quiet-button" aria-pressed="false">音あり</button><label class="sr-only" for="volume">音量</label><input id="volume" type="range" min="0" max="100" value="65" aria-label="音量"></div>
     </header>
     <main>
-      <section class="intro" aria-labelledby="title">
-        <div class="intro-copy"><p class="eyebrow">LISTEN · TRY · CONNECT</p><h1 id="title">その音には、<br>つづきがある。</h1><p class="lead">お手本の曲を、音のかけらでつくろう。<br>つながった瞬間、小さな一曲になる。</p></div>
-        <div class="sound-art" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="orbit orbit-three"></div><div class="art-core">♪</div><span class="art-caption">a little song, in pieces</span></div>
-      </section>
+      <section class="intro" aria-labelledby="title"><p class="eyebrow">RELICS OF A LITTLE SONG</p><h1 id="title">眠っていた音を、つなぐ。</h1><p>遺跡で見つけた、音を宿す宝石。<br>そのつながりを探すと、小さな曲がよみがえる。</p></section>
       <nav id="levels" class="level-nav" aria-label="曲を選ぶ"></nav>
       <section class="puzzle" aria-labelledby="level-title">
-        <div class="puzzle-heading"><div><p id="level-kicker" class="eyebrow"></p><h2 id="level-title"></h2><p id="level-description" class="level-description"></p></div><button id="reference" class="quiet-button" type="button"><span aria-hidden="true">▷</span> お手本を聴く</button></div>
-        <div class="instructions"><span class="step-dot">1</span><span>かけらを聴く</span><span class="step-line" aria-hidden="true"></span><span class="step-dot">2</span><span>選んで、置く</span><span class="step-line" aria-hidden="true"></span><span class="step-dot">3</span><span>つなげて聴く</span></div>
-        <div class="section-label"><h3>音のかけら</h3><span>同じ音は、何度でも聴けます</span></div>
-        <div id="pieces" class="pieces"></div>
-        <p id="selection" class="selection" aria-live="polite">かけらを選び、下の置き場所を押してください。</p>
-        <div class="section-label"><h3>あなたの並び</h3><span id="placed-count"></span></div>
-        <div id="slots" class="slots"></div>
-        <div class="arrange-tools"><button id="shuffle" class="text-button" type="button">↝ シャッフル</button><button id="clear" class="text-button" type="button">空に戻す</button><span>置いたかけらを選ぶと、入れ替えられます</span></div>
-        <div class="transport"><button id="play-order" class="secondary-button" type="button">▷ 並びを聴く</button><button id="check" class="primary-button" type="button">完成をたしかめる <span aria-hidden="true">→</span></button><button id="stop" class="quiet-button" type="button" disabled>■ 停止</button></div>
-        <div class="playback-line"><span id="playback-state" role="status">再生ボタンを押すと音が出ます。</span><span id="playback-time" aria-hidden="true"></span></div>
+        <div class="puzzle-heading"><div><p id="level-kicker" class="eyebrow"></p><h2 id="level-title"></h2></div><button id="reference" class="quiet-button" type="button">▷ お手本</button></div>
+        <div id="gem-stage" class="gem-stage" aria-label="宝石と音の台座">
+          <span class="stone-label socket-label" aria-hidden="true">音の台座</span>
+          <div id="sockets" class="sockets" aria-hidden="true"></div>
+          <svg id="connections" class="connections" preserveAspectRatio="none" aria-hidden="true"></svg>
+          <span class="stone-label shelf-label" aria-hidden="true">見つけたかけら</span>
+          <div id="gem-layer" class="gem-layer" role="group" aria-label="音の宝石。触れて試聴、ドラッグでくぼみへ。"></div>
+          <div id="drag-ghost" class="drag-ghost" aria-hidden="true" hidden></div>
+        </div>
+        <p id="gesture-status" class="gesture-status" role="status">宝石を聴いて、くぼみへ。横に並ぶと光がつながります。</p>
+        <div class="edit-bar" role="group" aria-label="ドラッグを使わない並べ替え">
+          <span id="active-name" class="active-name">宝石を選ぶ</span>
+          <button id="place-active" class="edit-button" type="button" disabled>はめる</button>
+          <button id="move-left" class="edit-button arrow-button" type="button" aria-label="選んだ宝石を左へ" disabled>←</button>
+          <button id="move-right" class="edit-button arrow-button" type="button" aria-label="選んだ宝石を右へ" disabled>→</button>
+          <button id="return-active" class="edit-button" type="button" disabled>戻す</button>
+        </div>
+        <div class="transport"><button id="play-order" class="secondary-button" type="button" disabled>▷ 並びを聴く</button><button id="check" class="primary-button" type="button" disabled>よみがえらせる</button><button id="stop" class="stop-button" type="button" aria-label="停止" disabled>■</button></div>
+        <div class="playback-line"><span id="playback-state" role="status">触れると音が鳴ります。</span><span id="playback-time" aria-hidden="true"></span></div>
         <div class="progress-track" aria-hidden="true"><span id="progress"></span></div>
         <div id="feedback" class="feedback" role="status"></div>
-        <button id="next" class="next-button" type="button" hidden>次の曲へ →</button>
+        <button id="next" class="next-button" type="button" hidden>次の音を探す →</button>
       </section>
-      <details class="help"><summary>遊び方とキーボード操作</summary><p>お手本と同じ曲になるように並べるパズルです。「聴く」でかけらを試聴。「選ぶ」→置き場所で並べます。置いた音を選んで別の場所を押すと入れ替え、×で外せます。お手本はいつでも聴けます。</p><p>Tab で移動、Enter / Space でボタン操作。選択中は数字 1〜4 で配置。P は並びの再生、S は停止、M はミュート、Esc は選択解除と停止。入力欄の操作中はショートカットを無効にします。</p><p>シャッフルは全部のかけらをランダムに配置します。画面を離れると音は止まり、戻っても自動再生しません。並び・達成状況・音量はこのブラウザーに保存します。</p></details>
+      <details class="help"><summary>宝石の動かし方・曲のヒント</summary><p id="level-description"></p><p>宝石に触れると、その音が鳴ります。ドラッグして石のくぼみへ。配置済みの宝石同士は入れ替わり、棚へ戻すと外れます。台座の外で離すか Esc を押すと、元へ戻ります。曲線の光はどの並びでもつながり、正解のヒントにはなりません。</p><p>ドラッグが難しいときは、宝石を聴く→「はめる」で空いているくぼみへ。左右ボタンで交換、「戻す」で外せます。Tab で宝石へ移動、Enter / Space で試聴、数字 1〜4 で配置、左右キーで移動、Delete で棚へ。空のくぼみは飛ばして再生します。P は並びの再生、S / Esc は停止、M はミュート。</p><p>拡大文字ではスクロールして操作できます。画面を離れると停止し、戻っても自動再生しません。配置・達成・音量は、このブラウザーに保存します。</p><button id="shuffle" class="quiet-button" type="button">↝ 並びをシャッフル</button><button id="clear" class="quiet-button" type="button">すべて棚へ戻す</button></details>
     </main>
-    <footer><span>楽譜はいらない。耳と、ちょっとした好奇心。</span><span>3 original songs · 仮タイトル / v0.1</span></footer>
+    <footer>Happaとつくるサンプルゲーム · 3つの独自曲 · 仮タイトル</footer>
   </div>
-  <noscript>このパズルは JavaScript を使用します。ブラウザーの JavaScript を有効にしてください。</noscript>
+  <dialog id="listening-room" class="listening-room" aria-labelledby="room-title" aria-describedby="room-state">
+    <svg class="room-staff" viewBox="0 0 1000 300" preserveAspectRatio="none" aria-hidden="true"><g><path d="M-40 100 Q210 55 480 110 T1040 90"/><path d="M-40 120 Q210 75 480 130 T1040 110"/><path d="M-40 140 Q210 95 480 150 T1040 130"/><path d="M-40 160 Q210 115 480 170 T1040 150"/><path d="M-40 180 Q210 135 480 190 T1040 170"/></g></svg>
+    <div class="room-content"><p class="eyebrow">THE SONG AWAKENS</p><h2 id="room-title"></h2><p>眠っていた音が、ひとつになる。</p><div id="room-gems" class="room-gems" aria-hidden="true"></div><div class="room-progress" aria-hidden="true"><span id="room-progress"></span></div><p id="room-state" role="status"></p><button id="room-stop" class="room-stop" type="button">■ 聴くのをやめる</button><div class="room-sound"><button id="room-mute" class="quiet-button" type="button" aria-pressed="false">音あり</button><label class="sr-only" for="room-volume">音量</label><input id="room-volume" type="range" min="0" max="100" value="65" aria-label="音量"></div></div>
+  </dialog>
+  <noscript>JavaScript を有効にして、この音楽パズルを遊んでください。</noscript>
 </body>
 </html>

@@ -78,10 +78,21 @@ test('original scores have valid bounded notes, rich arrangement retains melody 
     assert.deepEqual(rich.events.filter(e => e.voice === 'melody'),plain.events.filter(e => e.voice === 'melody'));
     const patterns = level.fragments.map(f => JSON.stringify(f.notes));
     assert.equal(new Set(patterns).size,patterns.length);
-    for (const event of rich.events) {
-      assert.ok(event.at >= 0 && event.at + event.length <= rich.duration + .001);
+    for (const score of [plain, rich]) for (const event of score.events) {
+      for (const key of ['at','length','midi','velocity']) assert.ok(Number.isFinite(event[key]), `${level.id}/${key}`);
+      assert.ok(event.at >= 0 && event.at + event.length <= score.duration + score.tailDuration + .001);
       assert.ok(event.midi >= 36 && event.midi <= 90 && event.length > 0 && event.velocity > 0);
     }
   }
   assert.throws(() => timeline(LEVELS[0],['missing']));
+});
+test('bass sounds every harmonic boundary and leaves room before the next root',()=>{
+  for(const level of LEVELS)for(const fragment of level.fragments) {
+    const beat=60/level.bpm,score=timeline(level,[fragment.id],true);
+    const bass=score.events.filter(e=>e.voice==='bass').sort((a,b)=>a.at-b.at);
+    for(const change of fragment.harmony)assert.ok(bass.some(e=>Math.abs(e.at-change.beat*beat)<.0001&&e.midi===change.bass),`${fragment.id} root ${change.beat}`);
+    for(let i=0;i<bass.length-1;i++)assert.ok(bass[i].at+bass[i].length+.08 < bass[i+1].at,`${fragment.id} bass overlap`);
+    assert.ok(score.events.some(e=>e.voice==='arp'));
+    assert.ok(!timeline(level,[fragment.id]).events.some(e=>e.voice==='arp'));
+  }
 });
