@@ -1,4 +1,4 @@
-import { LEVELS } from '../src/music.js?v=0.4.2';
+import { LEVELS } from '../src/music.js?v=0.4.3';
 const descriptions={
  sprout:{key:'ハ長調',words:'小さな音の形が姿を変え、高い返事として戻る。芽が光へ伸びるような曲。'},
  walk:{key:'ト長調',words:'はっきりした2拍の上で、短い呼びかけが高く返り、同じ形で戻る。水晶の澄んだこだま。'},

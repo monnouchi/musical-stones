@@ -1,9 +1,12 @@
-import { LEVELS } from './music.js?v=0.4.2';
-import { solution, newPuzzle, place, moveFree, evaluate, readState, saveState } from './game.js?v=0.4.2';
-import { geometry, dropTarget, applyDrop, gemPoint, magnetPoint, clampPoint } from './interaction.js?v=0.4.2';
-import { SoundPlayer } from './audio.js?v=0.4.2';
-import { MagicEffects } from './effects.js?v=0.4.2';
+import { LEVELS } from './music.js?v=0.4.3';
+import { solution, newPuzzle, place, moveFree, evaluate, readState, saveState } from './game.js?v=0.4.3';
+import { geometry, dropTarget, applyDrop, gemPoint, magnetPoint, clampPoint } from './interaction.js?v=0.4.3';
+import { SoundPlayer } from './audio.js?v=0.4.3';
+import { MagicEffects } from './effects.js?v=0.4.3';
 
+import { gemFaces, startGemVisuals } from './gem-visual.js?v=0.4.3';
+
+const gemVisuals = startGemVisuals();
 const $ = id => document.getElementById(id);
 let storage;
 try { storage = window.localStorage; } catch { storage = null; }
@@ -27,7 +30,7 @@ player.setVolume(state.volume, state.muted);
 
 function gemArt(id) {
   const color = colors[puzzle().tray.indexOf(id)];
-  return `<svg class="gem-face" viewBox="0 0 60 68" aria-hidden="true"><path fill="${color}" d="M18 3H42L58 26L45 63H15L2 26Z"/><path class="gem-facet" fill="#ffffff" opacity=".30" d="M18 3L30 24L2 26Z"/><path class="gem-facet" fill="#ffffff" opacity=".16" d="M18 3H42L30 24Z"/><path fill="#ffffff" opacity=".09" d="M30 24L58 26L45 63Z"/><path fill="#1c3d39" opacity=".22" d="M2 26L30 24L15 63Z"/><path fill="#ffffff" opacity=".19" d="M30 24L45 63H15Z"/><path fill="none" stroke="#ffffff" stroke-opacity=".32" stroke-width=".7" d="M18 3L30 24L42 3M2 26L30 24L58 26M15 63L30 24L45 63"/></svg><span class="gem-name">${name(id)}</span>`;
+  return `<svg class="gem-face" viewBox="0 0 60 68" data-color="${color}" aria-hidden="true">${gemFaces(color)}</svg><span class="gem-name">${name(id)}</span>`;
 }
 function persist() {
   if (!saveState(storage, state)) $('playback-state').textContent = '保存できない環境です。この画面では遊べます。';
@@ -63,6 +66,7 @@ function updatePlayback(info) {
     $('room-progress').style.width = `${info.fraction * 100}%`;
     $('room-state').textContent = state.muted || state.volume === 0 ? '消音中 — 音ありに切り替えると聴けます。' : '完成した曲を聴いています。';
   } else closeRoom();
+  gemVisuals.sync();
 }
 function status(message) { $('gesture-status').textContent = message; }
 function commit(next, message, landing=null) {
@@ -174,6 +178,8 @@ function render() {
     renderedLevel = current.id;
   }
   $('gem-stage').classList.toggle('is-awakened', awakened);
+  gems.forEach(el=>{if(!awakened){const svg=el.querySelector('.gem-face');svg.innerHTML=gemFaces(svg.dataset.color);svg.dataset.angle='0';}});
+  gemVisuals.sync();
   controls(); layout(); soundSettings();
   $('feedback').textContent = feedback || (state.solved.includes(current.id) ? 'この曲はよみがえりました。何度でも聴いて遊べます。' : current.subtitle);
   $('feedback').className = `feedback ${feedbackKind}`;

@@ -887,9 +887,8 @@ footer {
 .gem-stage:not(.is-awakened) .gem.has-magic .gem-face,.gem-stage:not(.is-awakened) .gem.is-playing .gem-face {filter:saturate(.18) brightness(1.02) drop-shadow(0 0 4px #e9dfb4)}
 .gem-stage.is-awakened .gem-face {filter:saturate(1.2) brightness(1.12) drop-shadow(0 0 7px var(--gem-color))}
 @media(prefers-reduced-motion:reduce) {.gem-stage.is-awakened .gem-face {animation:none;transition:none}}
-.gem-stage.is-awakened .gem-face,.room-gem .gem-face {animation:stone-orbit 9s linear infinite,stone-shimmer 5s ease-in-out infinite;transform-origin:50% 50%}
+.gem-stage.is-awakened .gem-face,.room-gem .gem-face {animation:stone-shimmer 5s ease-in-out infinite;transform-origin:50% 50%}
 .gem-stage.is-awakened .gem-facet,.room-gem .gem-facet {animation:facet-shimmer 4s ease-in-out infinite}
-@keyframes stone-orbit {from {transform:perspective(300px) rotateY(0deg)} to {transform:perspective(300px) rotateY(360deg)}}
 @keyframes stone-shimmer {0%,100% {filter:saturate(1.2) brightness(1.12) drop-shadow(0 0 7px var(--gem-color))} 50% {filter:saturate(1.3) brightness(1.35) drop-shadow(0 0 10px var(--gem-color))}}
 @keyframes facet-shimmer {0%,100% {opacity:.3} 50% {opacity:.6}}
 body.is-background .gem-face,body.is-background .gem-facet {animation-play-state:paused!important}
